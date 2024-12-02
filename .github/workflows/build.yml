@@ -1,0 +1,39 @@
+name: Device-Hub
+
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+    tags:
+      - '*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: 1.23
+
+      - name: Build application
+        shell: bash
+        run: |
+          gofmt -w .
+
+          if [ -n "$(git status --porcelain .)" ]; then
+            echo "Please run 'gofmt -w' and commit the updated files."
+            exit 1
+          fi
+
+          go mod download
+          go build ./...
+          go test ./...
+
+          cd projects/main
+          docker compose build
