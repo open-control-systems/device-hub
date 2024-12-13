@@ -1,0 +1,73 @@
+linters:
+  enable:
+    - revive
+    - gofmt
+    - govet
+    - staticcheck
+    - errcheck
+    - ineffassign
+    - typecheck
+    - gosimple
+    - unconvert
+    - unused
+    - gocritic
+    - copyloopvar
+
+linters-settings:
+  revive:
+    # When set to false, ignores files with "GENERATED" header, similar to golint.
+    # See https://github.com/mgechev/revive#configuration for details.
+    # Default: false
+    ignore-generated-header: true
+    # Sets the default severity.
+    # See https://github.com/mgechev/revive#configuration
+    # Default: warning
+    severity: "warning"
+    # Enable all available rules.
+    # Default: false
+    # Sets the default failure confidence.
+    # This means that linting errors with less than 0.8 confidence will be ignored.
+    # Default: 0.8
+    confidence: 0.1
+    # Enable all available rules.
+    # Default: false
+    enable-all-rules: true
+    rules:
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#add-constant
+      - name: add-constant
+        severity: warning
+        disabled: true
+        exclude: [""]
+        arguments:
+          - maxLitCount: "3"
+            allowStrs: '""'
+            allowInts: "0,1,2"
+            allowFloats: "0.0,0.,1.0,1.,2.0,2."
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#line-length-limit
+      - name: line-length-limit
+        severity: warning
+        disabled: false
+        exclude: [""]
+        arguments: [95]
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#if-return
+      - name: if-return
+        severity: warning
+        disabled: true
+        exclude: [""]
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#package-comments
+      - name: package-comments
+        severity: warning
+        disabled: true
+        exclude: [""]
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#exported
+      - name: exported
+        severity: warning
+        disabled: false
+        exclude: [""]
+
+issues:
+  include:
+    # https://golangci-lint.run/usage/false-positives/#exc0012
+    - EXC0012
+    # https://golangci-lint.run/usage/false-positives/#exc0014
+    - EXC0014

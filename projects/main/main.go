@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
@@ -14,7 +13,7 @@ import (
 
 func main() {
 	if err := core.SetLogFile(os.Getenv("DEVICE_HUB_LOG_PATH")); err != nil {
-		fmt.Fprintln(os.Stderr, "Failed to setup log file: ", err)
+		core.LogErr.Println("main: failed to setup log file: ", err)
 	}
 
 	appContext, cancelFunc := signal.NotifyContext(context.Background(),
@@ -25,19 +24,23 @@ func main() {
 	defer cancelFunc()
 
 	fanoutCloser := &core.FanoutCloser{}
-	defer fanoutCloser.Close()
+	defer func() {
+		if err := fanoutCloser.Close(); err != nil {
+			core.LogErr.Println("main: failed to close resources: ", err)
+		}
+	}()
 
-	devicePipeline := stinfluxdb.NewHttpPipeline(
+	devicePipeline := stinfluxdb.NewHTTPPipeline(
 		appContext,
 		fanoutCloser,
-		stinfluxdb.HttpPipelineParams{
+		stinfluxdb.HTTPPipelineParams{
 			DbParams: stinfluxdb.DbParams{
-				Url:    os.Getenv("INFLUXDB_URL"),
+				URL:    os.Getenv("INFLUXDB_URL"),
 				Org:    os.Getenv("INFLUXDB_ORG"),
 				Bucket: os.Getenv("INFLUXDB_BUCKET"),
 				Token:  os.Getenv("INFLUXDB_API_TOKEN"),
 			},
-			BaseUrl:       os.Getenv("DEVICE_HUB_API_BASE_URL"),
+			BaseURL:       os.Getenv("DEVICE_HUB_API_BASE_URL"),
 			FetchInterval: time.Second * 5,
 			FetchTimeout:  time.Second * 10,
 		})

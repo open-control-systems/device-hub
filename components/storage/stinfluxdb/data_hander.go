@@ -10,24 +10,24 @@ import (
 	"github.com/open-control-systems/device-hub/components/device"
 )
 
-// Store incoming data in influxDB.
+// DataHandler stores incoming data in influxDB.
 //
 // References:
-//   - InfluxDB quick start guide: https://docs.influxdata.com/influxdb/cloud/get-started
-//   - InfluxDB Go client library: https://docs.influxdata.com/influxdb/cloud/api-guide/client-libraries/go/
+//   - https://docs.influxdata.com/influxdb/cloud/get-started
+//   - https://docs.influxdata.com/influxdb/cloud/api-guide/client-libraries/go/
 type DataHandler struct {
 	ctx         context.Context
 	dbClient    influxdb2.Client
 	writeClient api.WriteAPIBlocking
 }
 
-// Initialize handler.
+// NewDataHandler initializes influxDB handler.
 //
 // Parameters:
 //   - ctx - parent context.
 //   - params - various influxDB configuration parameters.
 func NewDataHandler(ctx context.Context, params DbParams) *DataHandler {
-	dbClient := influxdb2.NewClient(params.Url, params.Token)
+	dbClient := influxdb2.NewClient(params.URL, params.Token)
 	writeClient := dbClient.WriteAPIBlocking(params.Org, params.Bucket)
 
 	return &DataHandler{
@@ -37,24 +37,24 @@ func NewDataHandler(ctx context.Context, params DbParams) *DataHandler {
 	}
 }
 
-// Store telemetry data in influxDB.
-func (h *DataHandler) HandleTelemetry(deviceId string, js device.Json) error {
-	return h.handleData("telemetry", deviceId, js)
+// HandleTelemetry stores telemetry data in influxDB.
+func (h *DataHandler) HandleTelemetry(deviceID string, js device.JSON) error {
+	return h.handleData("telemetry", deviceID, js)
 }
 
-// Store registration data in influxDB.
-func (h *DataHandler) HandleRegistration(deviceId string, js device.Json) error {
-	return h.handleData("registration", deviceId, js)
+// HandleRegistration stores registration data in influxDB.
+func (h *DataHandler) HandleRegistration(deviceID string, js device.JSON) error {
+	return h.handleData("registration", deviceID, js)
 }
 
-// Stop writing data to the DB.
+// Close stops writing data to the DB.
 func (h *DataHandler) Close() error {
 	h.dbClient.Close()
 
 	return nil
 }
 
-func (h *DataHandler) handleData(dataId string, deviceId string, js device.Json) error {
+func (h *DataHandler) handleData(dataID string, deviceID string, js device.JSON) error {
 	ts, ok := js["timestamp"]
 	if !ok {
 		return fmt.Errorf("influxdb-data-handler: missed timestamp field")
@@ -67,8 +67,8 @@ func (h *DataHandler) handleData(dataId string, deviceId string, js device.Json)
 
 	unixTimestamp := time.Unix(int64(timestamp), 0)
 
-	point := influxdb2.NewPoint(dataId,
-		map[string]string{"device_id": deviceId},
+	point := influxdb2.NewPoint(dataID,
+		map[string]string{"device_id": deviceID},
 		js,
 		unixTimestamp)
 

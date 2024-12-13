@@ -10,41 +10,41 @@ import (
 	"github.com/open-control-systems/device-hub/components/system/sysnet"
 )
 
-// Fetch device data over HTTP and store it in the influxDB database.
-type HttpPipeline struct {
+// HTTPPipeline fetches device data over HTTP and store it in the influxDB database.
+type HTTPPipeline struct {
 	dbParams      DbParams
 	fetchInterval time.Duration
 	ctx           context.Context
-	dataHandler   device.DataHandler
 	device        device.Device
 	doneCh        chan struct{}
 }
 
-type HttpPipelineParams struct {
-	// Various InfluxDB parameters.
+// HTTPPipelineParams provides various configuration options for HttpPipeline.
+type HTTPPipelineParams struct {
+	// DbParams provides various configuration options for influxDB.
 	DbParams DbParams
 
-	// Device API base URL.
-	BaseUrl string
+	// BaseURL - device API base URL.
+	BaseURL string
 
-	// How often to fetch data from the device.
+	// FetchInterval - how often to fetch data from the device.
 	FetchInterval time.Duration
 
-	// How long to wait for the response from the device.
+	// FetchTimeout - how long to wait for the response from the device.
 	FetchTimeout time.Duration
 }
 
-// Initialize HTTP pipeline.
+// NewHTTPPipeline initializes HTTP pipeline.
 //
 // Parameters:
 //   - ctx - parent context.
 //   - closer - to register all resources that should be closed.
 //   - params - various pipeline parameters.
-func NewHttpPipeline(
+func NewHTTPPipeline(
 	ctx context.Context,
 	closer *core.FanoutCloser,
-	params HttpPipelineParams,
-) *HttpPipeline {
+	params HTTPPipelineParams,
+) *HTTPPipeline {
 	dataHandler := NewDataHandler(ctx, params.DbParams)
 	closer.Add("influxdb-data-handler", dataHandler)
 
@@ -52,22 +52,22 @@ func NewHttpPipeline(
 	closer.Add("pion-mdns-resolver", resolver)
 
 	pollDevice := device.NewPollDevice(
-		htclient.NewUrlFetcher(
+		htclient.NewURLFetcher(
 			ctx,
 			htclient.NewResolveClient(resolver),
-			params.BaseUrl+"/registration",
+			params.BaseURL+"/registration",
 			params.FetchTimeout,
 		),
-		htclient.NewUrlFetcher(
+		htclient.NewURLFetcher(
 			ctx,
 			htclient.NewResolveClient(resolver),
-			params.BaseUrl+"/telemetry",
+			params.BaseURL+"/telemetry",
 			params.FetchTimeout,
 		),
 		dataHandler,
 	)
 
-	pipeline := &HttpPipeline{
+	pipeline := &HTTPPipeline{
 		dbParams:      params.DbParams,
 		fetchInterval: params.FetchInterval,
 		ctx:           ctx,
@@ -79,16 +79,16 @@ func NewHttpPipeline(
 	return pipeline
 }
 
-// Start asynchronous data processing.
-func (p *HttpPipeline) Start() {
+// Start begins asynchronous data processing.
+func (p *HTTPPipeline) Start() {
 	core.LogInf.Printf("influxdb-http-pipeline: starting: url=%s org=%s bucket=%s\n",
-		p.dbParams.Url, p.dbParams.Org, p.dbParams.Bucket)
+		p.dbParams.URL, p.dbParams.Org, p.dbParams.Bucket)
 
 	go p.run()
 }
 
-// Stop device data processing.
-func (p *HttpPipeline) Close() error {
+// Close ends device data processing.
+func (p *HTTPPipeline) Close() error {
 	core.LogInf.Println("influxdb-http-pipeline: stopping")
 	<-p.doneCh
 	core.LogInf.Println("influxdb-http-pipeline: stopped")
@@ -96,7 +96,7 @@ func (p *HttpPipeline) Close() error {
 	return nil
 }
 
-func (p *HttpPipeline) run() {
+func (p *HTTPPipeline) run() {
 	ticker := time.NewTicker(p.fetchInterval)
 	defer ticker.Stop()
 	defer close(p.doneCh)

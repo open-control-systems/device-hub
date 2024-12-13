@@ -1,12 +1,13 @@
 package device
 
 // JSON device data.
-type Json = map[string]interface{}
+type JSON = map[string]any
 
+// DataHandler to handle varios data types from a device.
 type DataHandler interface {
-	// Handle telemetry data from the device.
-	HandleTelemetry(deviceId string, js Json) error
+	// HandleTelemetry handles the telemetry data from the device.
+	HandleTelemetry(deviceID string, js JSON) error
 
-	// Handle registration data from the device.
-	HandleRegistration(deviceId string, js Json) error
+	// HandleRegistration handles the registration data from the device.
+	HandleRegistration(deviceID string, js JSON) error
 }

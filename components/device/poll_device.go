@@ -5,15 +5,15 @@ import (
 	"fmt"
 )
 
-// Actively fetch telemetry and registration data.
+// PollDevice actively fetches telemetry and registration data.
 type PollDevice struct {
 	registrationFetcher Fetcher
 	telemetryFetcher    Fetcher
 	dataHandler         DataHandler
-	deviceId            string
+	deviceID            string
 }
 
-// Initialize polling device.
+// NewPollDevice initializes polling device.
 //
 // Parameters:
 //   - registrationFetcher to fetch device registration data.
@@ -31,7 +31,7 @@ func NewPollDevice(
 	}
 }
 
-// Fetch telemetry and registration data and pass them to the underlying handler.
+// Update fetches telemetry and registration data and pass them to the underlying handlers.
 func (d *PollDevice) Update() error {
 	registrationData, err := d.fetchRegistration()
 	if err != nil {
@@ -43,43 +43,31 @@ func (d *PollDevice) Update() error {
 		return err
 	}
 
-	if err := d.dataHandler.HandleRegistration(d.deviceId, registrationData); err != nil {
+	if err := d.dataHandler.HandleRegistration(d.deviceID, registrationData); err != nil {
 		return err
 	}
 
-	if err := d.dataHandler.HandleTelemetry(d.deviceId, telemetryData); err != nil {
+	if err := d.dataHandler.HandleTelemetry(d.deviceID, telemetryData); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (d *PollDevice) fetchRegistration() (Json, error) {
+func (d *PollDevice) fetchRegistration() (JSON, error) {
 	buf, err := d.registrationFetcher.Fetch()
 	if err != nil {
 		return nil, err
 	}
 
-	var js Json
+	var js JSON
 	err = json.Unmarshal(buf, &js)
 	if err != nil {
 		return nil, err
 	}
 
-	ts, ok := js["timestamp"]
-	if !ok {
-		return nil, fmt.Errorf(
-			"poll-device: failed to fetch registration: missing timestamp field")
-	}
-
-	timestamp, ok := ts.(float64)
-	if !ok {
-		return nil, fmt.Errorf(
-			"poll-device: failed to fetch registration: invalid type for timestamp")
-	}
-
-	if timestamp == -1 {
-		return nil, fmt.Errorf("poll-device: failed to fetch registration: invalid timestamp")
+	if err := validateTimestamp(js); err != nil {
+		return nil, err
 	}
 
 	id, ok := js["device_id"]
@@ -94,44 +82,52 @@ func (d *PollDevice) fetchRegistration() (Json, error) {
 			"poll-device: failed to fetch registration: invalid type for device_id")
 	}
 
-	if d.deviceId != "" && d.deviceId != deviceID {
+	if d.deviceID != "" && d.deviceID != deviceID {
 		return nil, fmt.Errorf(
 			"poll-device: failed to fetch registration: device ID mismatch: want=%s got=%s",
-			d.deviceId, deviceID,
+			d.deviceID, deviceID,
 		)
 	}
 
-	d.deviceId = deviceID
+	d.deviceID = deviceID
 
 	return js, nil
 }
 
-func (d *PollDevice) fetchTelemetry() (Json, error) {
+func (d *PollDevice) fetchTelemetry() (JSON, error) {
 	buf, err := d.telemetryFetcher.Fetch()
 	if err != nil {
 		return nil, err
 	}
 
-	var js Json
+	var js JSON
 
 	err = json.Unmarshal(buf, &js)
 	if err != nil {
 		return nil, err
 	}
 
+	if err := validateTimestamp(js); err != nil {
+		return nil, err
+	}
+
+	return js, nil
+}
+
+func validateTimestamp(js JSON) error {
 	ts, ok := js["timestamp"]
 	if !ok {
-		return nil, fmt.Errorf("poll-device: failed to fetch telemetry: missing timestamp field")
+		return fmt.Errorf("poll-device: failed to fetch data: missing timestamp field")
 	}
 
 	timestamp, ok := ts.(float64)
 	if !ok {
-		return nil, fmt.Errorf("poll-device: failed to fetch telemetry: invalid type for timestamp")
+		return fmt.Errorf("poll-device: failed to fetch data: invalid type for timestamp")
 	}
 
 	if timestamp == -1 {
-		return nil, fmt.Errorf("poll-device: failed to fetch telemetry: invalid timestamp")
+		return fmt.Errorf("poll-device: failed to fetch data: invalid timestamp")
 	}
 
-	return js, nil
+	return nil
 }

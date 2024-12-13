@@ -2,26 +2,25 @@ package htclient
 
 import (
 	"io"
-	"io/ioutil"
 	"net/http"
 
 	"github.com/open-control-systems/device-hub/components/http/httransport"
 	"github.com/open-control-systems/device-hub/components/system/sysnet"
 )
 
-// Standard HTTP client wrapper to simplify response reading.
-type HttpClient struct {
+// HTTPClient is a standard HTTP client wrapper that simplifies reading responses.
+type HTTPClient struct {
 	http.Client
 }
 
-// General purpose HTTP client.
-func NewDefaultClient() *HttpClient {
-	return &HttpClient{}
+// NewDefaultClient creates a general purpose HTTP client.
+func NewDefaultClient() *HTTPClient {
+	return &HTTPClient{}
 }
 
-// HTTP client with customer resolving rules.
-func NewResolveClient(resolver sysnet.Resolver) *HttpClient {
-	return &HttpClient{
+// NewResolveClient creates HTTP client with custom resolving rules.
+func NewResolveClient(resolver sysnet.Resolver) *HTTPClient {
+	return &HTTPClient{
 		Client: http.Client{
 			Transport: httransport.NewResolveRoundTripper(resolver, http.DefaultTransport),
 		},
@@ -29,7 +28,7 @@ func NewResolveClient(resolver sysnet.Resolver) *HttpClient {
 }
 
 // Do sends a request, receives a response, and fully reads the response body.
-func (c *HttpClient) Do(req *http.Request) (*http.Response, []byte, error) {
+func (c *HTTPClient) Do(req *http.Request) (*http.Response, []byte, error) {
 	resp, err := c.Client.Do(req)
 	if err != nil {
 		return nil, nil, err
@@ -39,7 +38,7 @@ func (c *HttpClient) Do(req *http.Request) (*http.Response, []byte, error) {
 	var body []byte
 	switch resp.ContentLength {
 	case -1:
-		body, err = ioutil.ReadAll(resp.Body)
+		body, err = io.ReadAll(resp.Body)
 	case 0:
 		body, err = []byte{}, nil
 	default:
