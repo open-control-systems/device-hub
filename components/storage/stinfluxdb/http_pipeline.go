@@ -8,6 +8,7 @@ import (
 	"github.com/open-control-systems/device-hub/components/device"
 	"github.com/open-control-systems/device-hub/components/http/htclient"
 	"github.com/open-control-systems/device-hub/components/system/sysnet"
+	"github.com/open-control-systems/device-hub/components/system/syssched"
 )
 
 // HTTPPipeline fetches device data over HTTP and store it in the influxDB database.
@@ -15,7 +16,7 @@ type HTTPPipeline struct {
 	dbParams      DbParams
 	fetchInterval time.Duration
 	ctx           context.Context
-	device        device.Device
+	task          syssched.Task
 	doneCh        chan struct{}
 }
 
@@ -71,7 +72,7 @@ func NewHTTPPipeline(
 		dbParams:      params.DbParams,
 		fetchInterval: params.FetchInterval,
 		ctx:           ctx,
-		device:        pollDevice,
+		task:          pollDevice,
 		doneCh:        make(chan struct{}),
 	}
 	closer.Add("influxdb-http-pipeline", pipeline)
@@ -104,7 +105,7 @@ func (p *HTTPPipeline) run() {
 	for {
 		select {
 		case <-ticker.C:
-			if err := p.device.Update(); err != nil {
+			if err := p.task.Run(); err != nil {
 				core.LogErr.Printf(
 					"influxdb-http-pipeline: failed to handle device data: %v\n", err)
 			}

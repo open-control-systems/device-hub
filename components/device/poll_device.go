@@ -3,6 +3,8 @@ package device
 import (
 	"encoding/json"
 	"fmt"
+
+	"github.com/open-control-systems/device-hub/components/status"
 )
 
 // PollDevice actively fetches telemetry and registration data.
@@ -31,24 +33,24 @@ func NewPollDevice(
 	}
 }
 
-// Update fetches telemetry and registration data and pass them to the underlying handlers.
-func (d *PollDevice) Update() error {
+// Run fetches telemetry and registration data and pass them to the underlying handlers.
+func (d *PollDevice) Run() error {
 	registrationData, err := d.fetchRegistration()
 	if err != nil {
-		return err
+		return fmt.Errorf("fetching registration failed: %w", status.StatusError)
 	}
 
 	telemetryData, err := d.fetchTelemetry()
 	if err != nil {
-		return err
+		return fmt.Errorf("fetching telemetry failed: %w", status.StatusError)
 	}
 
 	if err := d.dataHandler.HandleRegistration(d.deviceID, registrationData); err != nil {
-		return err
+		return fmt.Errorf("handling registration failed: %w", status.StatusError)
 	}
 
 	if err := d.dataHandler.HandleTelemetry(d.deviceID, telemetryData); err != nil {
-		return err
+		return fmt.Errorf("handling telemetry failed: %w", status.StatusError)
 	}
 
 	return nil

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/open-control-systems/device-hub/components/status"
 	"github.com/stretchr/testify/require"
 )
 
@@ -108,7 +109,7 @@ func TestPollDeviceRun(t *testing.T) {
 	device := NewPollDevice(&registrationFetcher, &telemetryFetcher, &dataHandler)
 	require.Equal(t, "", dataHandler.registration.DeviceID)
 
-	require.Nil(t, device.Update())
+	require.Nil(t, device.Run())
 	require.Equal(t, deviceID, dataHandler.registration.DeviceID)
 	require.Equal(t, telemetryData, dataHandler.telemetry)
 }
@@ -153,7 +154,9 @@ func TestPollDeviceRunFetchRegistrationError(t *testing.T) {
 	device := NewPollDevice(&registrationFetcher, &telemetryFetcher, &dataHandler)
 	require.Equal(t, "", dataHandler.registration.DeviceID)
 
-	require.NotNil(t, device.Update())
+	err = device.Run()
+	require.NotNil(t, err)
+	require.True(t, errors.Is(err, status.StatusError))
 	require.Empty(t, dataHandler.registration.DeviceID)
 }
 
@@ -197,7 +200,9 @@ func TestPollDeviceRunFetchTelemetryError(t *testing.T) {
 	device := NewPollDevice(&registrationFetcher, &telemetryFetcher, &dataHandler)
 	require.Equal(t, "", dataHandler.registration.DeviceID)
 
-	require.NotNil(t, device.Update())
+	err = device.Run()
+	require.NotNil(t, err)
+	require.True(t, errors.Is(err, status.StatusError))
 	require.Empty(t, dataHandler.registration.DeviceID)
 }
 
@@ -241,7 +246,9 @@ func TestPollDeviceRunEmptyDeviceId(t *testing.T) {
 	device := NewPollDevice(&registrationFetcher, &telemetryFetcher, &dataHandler)
 	require.Equal(t, "", dataHandler.registration.DeviceID)
 
-	require.NotNil(t, device.Update())
+	err = device.Run()
+	require.NotNil(t, err)
+	require.True(t, errors.Is(err, status.StatusError))
 	require.Empty(t, dataHandler.registration.DeviceID)
 }
 
@@ -285,7 +292,9 @@ func TestPollDeviceRunInvalidTimestampRegistration(t *testing.T) {
 	device := NewPollDevice(&registrationFetcher, &telemetryFetcher, &dataHandler)
 	require.Equal(t, "", dataHandler.registration.DeviceID)
 
-	require.NotNil(t, device.Update())
+	err = device.Run()
+	require.NotNil(t, err)
+	require.True(t, errors.Is(err, status.StatusError))
 	require.Empty(t, dataHandler.registration.DeviceID)
 }
 
@@ -329,7 +338,9 @@ func TestPollDeviceRunInvalidTimestampTelemetry(t *testing.T) {
 	device := NewPollDevice(&registrationFetcher, &telemetryFetcher, &dataHandler)
 	require.Equal(t, "", dataHandler.registration.DeviceID)
 
-	require.NotNil(t, device.Update())
+	err = device.Run()
+	require.NotNil(t, err)
+	require.True(t, errors.Is(err, status.StatusError))
 	require.Empty(t, dataHandler.registration.DeviceID)
 }
 
@@ -375,7 +386,9 @@ func TestPollDeviceRunDataHandlerFailed(t *testing.T) {
 	device := NewPollDevice(&registrationFetcher, &telemetryFetcher, &dataHandler)
 	require.Equal(t, "", dataHandler.registration.DeviceID)
 
-	require.NotNil(t, device.Update())
+	err = device.Run()
+	require.NotNil(t, err)
+	require.True(t, errors.Is(err, status.StatusError))
 	require.Empty(t, dataHandler.registration.DeviceID)
 }
 
@@ -419,7 +432,7 @@ func TestPollDeviceRunDeviceIdChanged(t *testing.T) {
 	device := NewPollDevice(&registrationFetcher, &telemetryFetcher, &dataHandler)
 	require.Equal(t, "", dataHandler.registration.DeviceID)
 
-	require.Nil(t, device.Update())
+	require.Nil(t, device.Run())
 	require.Equal(t, deviceID, dataHandler.registration.DeviceID)
 
 	changedDeviceID := "0xCBDE"
@@ -433,6 +446,8 @@ func TestPollDeviceRunDeviceIdChanged(t *testing.T) {
 
 	registrationFetcher.data = buf
 
-	require.NotNil(t, device.Update())
+	err = device.Run()
+	require.NotNil(t, err)
+	require.True(t, errors.Is(err, status.StatusError))
 	require.Equal(t, deviceID, dataHandler.registration.DeviceID)
 }
