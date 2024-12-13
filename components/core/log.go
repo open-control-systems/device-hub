@@ -6,12 +6,15 @@ import (
 )
 
 var (
+	// LogInf logs informational events.
 	LogInf = log.New(os.Stderr, "inf:", log.LstdFlags)
+	// LogWrn logs warning events.
 	LogWrn = log.New(os.Stderr, "wrn:", log.LstdFlags)
+	// LogErr logs error events.
 	LogErr = log.New(os.Stderr, "err:", log.LstdFlags)
 )
 
-// Setup log file for all loggers.
+// SetLogFile setups a log file for all loggers.
 func SetLogFile(path string) error {
 	file, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {

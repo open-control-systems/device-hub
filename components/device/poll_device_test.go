@@ -18,13 +18,13 @@ func (f *testFetcher) Fetch() ([]byte, error) {
 }
 
 type testRegistrationData struct {
-	DeviceId  string  `json:"device_id"`
+	DeviceID  string  `json:"device_id"`
 	Timestamp float64 `json:"timestamp"`
 }
 
 type testTelemetryData struct {
 	Timestamp   float64 `json:"timestamp"`
-	Temperature float32 `json:"temperature"`
+	Temperature float64 `json:"temperature"`
 	Status      string  `json:"status"`
 }
 
@@ -34,7 +34,7 @@ type testDataHandler struct {
 	err          error
 }
 
-func (d *testDataHandler) HandleTelemetry(deviceId string, js Json) error {
+func (d *testDataHandler) HandleTelemetry(_ string, js JSON) error {
 	if d.err != nil {
 		return d.err
 	}
@@ -51,7 +51,7 @@ func (d *testDataHandler) HandleTelemetry(deviceId string, js Json) error {
 	return nil
 }
 
-func (d *testDataHandler) HandleRegistration(deviceId string, js Json) error {
+func (d *testDataHandler) HandleRegistration(_ string, js JSON) error {
 	if d.err != nil {
 		return d.err
 	}
@@ -69,11 +69,14 @@ func (d *testDataHandler) HandleRegistration(deviceId string, js Json) error {
 }
 
 func TestPollDeviceRun(t *testing.T) {
-	deviceId := "0xABCD"
+	deviceID := "0xABCD"
+	testTimestamp := 13
+	testTemperature := 42.135
+	testStatus := "foo"
 
 	registrationData := testRegistrationData{
-		DeviceId:  deviceId,
-		Timestamp: 123,
+		DeviceID:  deviceID,
+		Timestamp: float64(testTimestamp),
 	}
 
 	buf, err := json.Marshal(registrationData)
@@ -86,9 +89,9 @@ func TestPollDeviceRun(t *testing.T) {
 	}
 
 	telemetryData := testTelemetryData{
-		Timestamp:   123,
-		Temperature: 123.3,
-		Status:      "foo",
+		Timestamp:   float64(testTimestamp),
+		Temperature: float64(testTemperature),
+		Status:      testStatus,
 	}
 
 	buf, err = json.Marshal(telemetryData)
@@ -103,19 +106,22 @@ func TestPollDeviceRun(t *testing.T) {
 	dataHandler := testDataHandler{}
 
 	device := NewPollDevice(&registrationFetcher, &telemetryFetcher, &dataHandler)
-	require.Equal(t, "", dataHandler.registration.DeviceId)
+	require.Equal(t, "", dataHandler.registration.DeviceID)
 
 	require.Nil(t, device.Update())
-	require.Equal(t, deviceId, dataHandler.registration.DeviceId)
+	require.Equal(t, deviceID, dataHandler.registration.DeviceID)
 	require.Equal(t, telemetryData, dataHandler.telemetry)
 }
 
 func TestPollDeviceRunFetchRegistrationError(t *testing.T) {
-	deviceId := "0xABCD"
+	deviceID := "0xABCD"
+	testTimestamp := 13
+	testTemperature := 42.135
+	testStatus := "foo"
 
 	registrationData := testRegistrationData{
-		DeviceId:  deviceId,
-		Timestamp: 123,
+		DeviceID:  deviceID,
+		Timestamp: float64(testTimestamp),
 	}
 
 	buf, err := json.Marshal(registrationData)
@@ -128,9 +134,9 @@ func TestPollDeviceRunFetchRegistrationError(t *testing.T) {
 	}
 
 	telemetryData := testTelemetryData{
-		Timestamp:   123,
-		Temperature: 123.3,
-		Status:      "foo",
+		Timestamp:   float64(testTimestamp),
+		Temperature: float64(testTemperature),
+		Status:      testStatus,
 	}
 
 	buf, err = json.Marshal(telemetryData)
@@ -145,18 +151,21 @@ func TestPollDeviceRunFetchRegistrationError(t *testing.T) {
 	dataHandler := testDataHandler{}
 
 	device := NewPollDevice(&registrationFetcher, &telemetryFetcher, &dataHandler)
-	require.Equal(t, "", dataHandler.registration.DeviceId)
+	require.Equal(t, "", dataHandler.registration.DeviceID)
 
 	require.NotNil(t, device.Update())
-	require.Empty(t, dataHandler.registration.DeviceId)
+	require.Empty(t, dataHandler.registration.DeviceID)
 }
 
 func TestPollDeviceRunFetchTelemetryError(t *testing.T) {
-	deviceId := "0xABCD"
+	deviceID := "0xABCD"
+	testTimestamp := 13
+	testTemperature := 42.135
+	testStatus := "foo"
 
 	registrationData := testRegistrationData{
-		DeviceId:  deviceId,
-		Timestamp: 123,
+		DeviceID:  deviceID,
+		Timestamp: float64(testTimestamp),
 	}
 
 	buf, err := json.Marshal(registrationData)
@@ -169,9 +178,9 @@ func TestPollDeviceRunFetchTelemetryError(t *testing.T) {
 	}
 
 	telemetryData := testTelemetryData{
-		Timestamp:   123,
-		Temperature: 123.3,
-		Status:      "foo",
+		Timestamp:   float64(testTimestamp),
+		Temperature: float64(testTemperature),
+		Status:      testStatus,
 	}
 
 	buf, err = json.Marshal(telemetryData)
@@ -186,18 +195,21 @@ func TestPollDeviceRunFetchTelemetryError(t *testing.T) {
 	dataHandler := testDataHandler{}
 
 	device := NewPollDevice(&registrationFetcher, &telemetryFetcher, &dataHandler)
-	require.Equal(t, "", dataHandler.registration.DeviceId)
+	require.Equal(t, "", dataHandler.registration.DeviceID)
 
 	require.NotNil(t, device.Update())
-	require.Empty(t, dataHandler.registration.DeviceId)
+	require.Empty(t, dataHandler.registration.DeviceID)
 }
 
 func TestPollDeviceRunEmptyDeviceId(t *testing.T) {
-	deviceId := ""
+	deviceID := ""
+	testTimestamp := 13
+	testTemperature := 42.135
+	testStatus := "foo"
 
 	registrationData := testRegistrationData{
-		DeviceId:  deviceId,
-		Timestamp: 123,
+		DeviceID:  deviceID,
+		Timestamp: float64(testTimestamp),
 	}
 
 	buf, err := json.Marshal(registrationData)
@@ -210,9 +222,9 @@ func TestPollDeviceRunEmptyDeviceId(t *testing.T) {
 	}
 
 	telemetryData := testTelemetryData{
-		Timestamp:   123,
-		Temperature: 123.3,
-		Status:      "foo",
+		Timestamp:   float64(testTimestamp),
+		Temperature: float64(testTemperature),
+		Status:      testStatus,
 	}
 
 	buf, err = json.Marshal(telemetryData)
@@ -227,17 +239,20 @@ func TestPollDeviceRunEmptyDeviceId(t *testing.T) {
 	dataHandler := testDataHandler{}
 
 	device := NewPollDevice(&registrationFetcher, &telemetryFetcher, &dataHandler)
-	require.Equal(t, "", dataHandler.registration.DeviceId)
+	require.Equal(t, "", dataHandler.registration.DeviceID)
 
 	require.NotNil(t, device.Update())
-	require.Empty(t, dataHandler.registration.DeviceId)
+	require.Empty(t, dataHandler.registration.DeviceID)
 }
 
 func TestPollDeviceRunInvalidTimestampRegistration(t *testing.T) {
-	deviceId := "0xABCD"
+	deviceID := "0xABCD"
+	testTimestamp := 13
+	testTemperature := 42.135
+	testStatus := "foo"
 
 	registrationData := testRegistrationData{
-		DeviceId:  deviceId,
+		DeviceID:  deviceID,
 		Timestamp: -1,
 	}
 
@@ -251,9 +266,9 @@ func TestPollDeviceRunInvalidTimestampRegistration(t *testing.T) {
 	}
 
 	telemetryData := testTelemetryData{
-		Timestamp:   123,
-		Temperature: 123.3,
-		Status:      "foo",
+		Timestamp:   float64(testTimestamp),
+		Temperature: float64(testTemperature),
+		Status:      testStatus,
 	}
 
 	buf, err = json.Marshal(telemetryData)
@@ -268,18 +283,21 @@ func TestPollDeviceRunInvalidTimestampRegistration(t *testing.T) {
 	dataHandler := testDataHandler{}
 
 	device := NewPollDevice(&registrationFetcher, &telemetryFetcher, &dataHandler)
-	require.Equal(t, "", dataHandler.registration.DeviceId)
+	require.Equal(t, "", dataHandler.registration.DeviceID)
 
 	require.NotNil(t, device.Update())
-	require.Empty(t, dataHandler.registration.DeviceId)
+	require.Empty(t, dataHandler.registration.DeviceID)
 }
 
 func TestPollDeviceRunInvalidTimestampTelemetry(t *testing.T) {
-	deviceId := "0xABCD"
+	deviceID := "0xABCD"
+	testTimestamp := 13
+	testTemperature := 42.135
+	testStatus := "foo"
 
 	registrationData := testRegistrationData{
-		DeviceId:  deviceId,
-		Timestamp: 123,
+		DeviceID:  deviceID,
+		Timestamp: float64(testTimestamp),
 	}
 
 	buf, err := json.Marshal(registrationData)
@@ -292,9 +310,9 @@ func TestPollDeviceRunInvalidTimestampTelemetry(t *testing.T) {
 	}
 
 	telemetryData := testTelemetryData{
-		Timestamp:   -1,
-		Temperature: 123.3,
-		Status:      "foo",
+		Timestamp:   float64(-1),
+		Temperature: float64(testTemperature),
+		Status:      testStatus,
 	}
 
 	buf, err = json.Marshal(telemetryData)
@@ -309,18 +327,21 @@ func TestPollDeviceRunInvalidTimestampTelemetry(t *testing.T) {
 	dataHandler := testDataHandler{}
 
 	device := NewPollDevice(&registrationFetcher, &telemetryFetcher, &dataHandler)
-	require.Equal(t, "", dataHandler.registration.DeviceId)
+	require.Equal(t, "", dataHandler.registration.DeviceID)
 
 	require.NotNil(t, device.Update())
-	require.Empty(t, dataHandler.registration.DeviceId)
+	require.Empty(t, dataHandler.registration.DeviceID)
 }
 
 func TestPollDeviceRunDataHandlerFailed(t *testing.T) {
-	deviceId := "0xABCD"
+	deviceID := "0xABCD"
+	testTimestamp := 13
+	testTemperature := 42.135
+	testStatus := "foo"
 
 	registrationData := testRegistrationData{
-		DeviceId:  deviceId,
-		Timestamp: 123,
+		DeviceID:  deviceID,
+		Timestamp: float64(testTimestamp),
 	}
 
 	buf, err := json.Marshal(registrationData)
@@ -333,9 +354,9 @@ func TestPollDeviceRunDataHandlerFailed(t *testing.T) {
 	}
 
 	telemetryData := testTelemetryData{
-		Timestamp:   123,
-		Temperature: 123.3,
-		Status:      "foo",
+		Timestamp:   float64(testTimestamp),
+		Temperature: float64(testTemperature),
+		Status:      testStatus,
 	}
 
 	buf, err = json.Marshal(telemetryData)
@@ -352,18 +373,21 @@ func TestPollDeviceRunDataHandlerFailed(t *testing.T) {
 	}
 
 	device := NewPollDevice(&registrationFetcher, &telemetryFetcher, &dataHandler)
-	require.Equal(t, "", dataHandler.registration.DeviceId)
+	require.Equal(t, "", dataHandler.registration.DeviceID)
 
 	require.NotNil(t, device.Update())
-	require.Empty(t, dataHandler.registration.DeviceId)
+	require.Empty(t, dataHandler.registration.DeviceID)
 }
 
 func TestPollDeviceRunDeviceIdChanged(t *testing.T) {
-	deviceId := "0xABCD"
+	deviceID := "0xABCD"
+	testTimestamp := 13
+	testTemperature := 42.135
+	testStatus := "foo"
 
 	registrationData := testRegistrationData{
-		DeviceId:  deviceId,
-		Timestamp: 123,
+		DeviceID:  deviceID,
+		Timestamp: float64(testTimestamp),
 	}
 
 	buf, err := json.Marshal(registrationData)
@@ -376,9 +400,9 @@ func TestPollDeviceRunDeviceIdChanged(t *testing.T) {
 	}
 
 	telemetryData := testTelemetryData{
-		Timestamp:   123,
-		Temperature: 123.3,
-		Status:      "foo",
+		Timestamp:   float64(testTimestamp),
+		Temperature: float64(testTemperature),
+		Status:      testStatus,
 	}
 
 	buf, err = json.Marshal(telemetryData)
@@ -393,15 +417,15 @@ func TestPollDeviceRunDeviceIdChanged(t *testing.T) {
 	dataHandler := testDataHandler{}
 
 	device := NewPollDevice(&registrationFetcher, &telemetryFetcher, &dataHandler)
-	require.Equal(t, "", dataHandler.registration.DeviceId)
+	require.Equal(t, "", dataHandler.registration.DeviceID)
 
 	require.Nil(t, device.Update())
-	require.Equal(t, deviceId, dataHandler.registration.DeviceId)
+	require.Equal(t, deviceID, dataHandler.registration.DeviceID)
 
-	changedDeviceId := "0xCBDE"
-	require.NotEqual(t, deviceId, changedDeviceId)
+	changedDeviceID := "0xCBDE"
+	require.NotEqual(t, deviceID, changedDeviceID)
 
-	registrationData.DeviceId = changedDeviceId
+	registrationData.DeviceID = changedDeviceID
 
 	buf, err = json.Marshal(registrationData)
 	require.Nil(t, err)
@@ -410,5 +434,5 @@ func TestPollDeviceRunDeviceIdChanged(t *testing.T) {
 	registrationFetcher.data = buf
 
 	require.NotNil(t, device.Update())
-	require.Equal(t, deviceId, dataHandler.registration.DeviceId)
+	require.Equal(t, deviceID, dataHandler.registration.DeviceID)
 }

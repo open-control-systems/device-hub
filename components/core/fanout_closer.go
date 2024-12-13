@@ -1,16 +1,16 @@
 package core
 
-// Propagate close call to the underlying closers.
+// FanoutCloser propagates close call to the underlying closers.
 type FanoutCloser struct {
 	closers []node
 }
 
-// Add closer with id to be notified when the close event is happened.
+// Add addes closer with id to be notified when the close event is happened.
 func (c *FanoutCloser) Add(id string, closer Closer) {
 	c.closers = append(c.closers, node{id: id, c: closer})
 }
 
-// Close all.
+// Close closes all registered closers.
 func (c *FanoutCloser) Close() error {
 	for _, node := range c.closers {
 		if err := node.c.Close(); err != nil {

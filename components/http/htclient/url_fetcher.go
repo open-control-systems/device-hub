@@ -7,23 +7,28 @@ import (
 	"time"
 )
 
-// Send requests to the configured HTTP endpoint.
-type UrlFetcher struct {
+// URLFetcher sends requests to the configured HTTP endpoint.
+type URLFetcher struct {
 	ctx     context.Context
 	url     string
 	timeout time.Duration
-	client  *HttpClient
+	client  *HTTPClient
 }
 
-// Initialize URL Fetcher.
+// NewURLFetcher initializes URL Fetcher.
 //
 // Parameters:
 //   - ctx to pass to the HTTP request.
 //   - client to perform an actual HTTP request.
 //   - url - HTTP URL.
 //   - timeout - HTTP request timeout.
-func NewUrlFetcher(ctx context.Context, client *HttpClient, url string, timeout time.Duration) *UrlFetcher {
-	return &UrlFetcher{
+func NewURLFetcher(
+	ctx context.Context,
+	client *HTTPClient,
+	url string,
+	timeout time.Duration,
+) *URLFetcher {
+	return &URLFetcher{
 		ctx:     ctx,
 		url:     url,
 		timeout: timeout,
@@ -32,7 +37,7 @@ func NewUrlFetcher(ctx context.Context, client *HttpClient, url string, timeout 
 }
 
 // Fetch data from the HTTP resource.
-func (f *UrlFetcher) Fetch() ([]byte, error) {
+func (f *URLFetcher) Fetch() ([]byte, error) {
 	ctx, cancel := context.WithTimeout(f.ctx, f.timeout)
 	defer cancel()
 

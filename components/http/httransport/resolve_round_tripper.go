@@ -7,12 +7,13 @@ import (
 	"github.com/open-control-systems/device-hub/components/system/sysnet"
 )
 
+// ResolveRoundTripper allows to perform hostname resolving before sending the HTTP request.
 type ResolveRoundTripper struct {
 	rs sysnet.Resolver
 	rt http.RoundTripper
 }
 
-// Initialize.
+// NewResolveRoundTripper initializes round tripper.
 //
 // Parameters:
 //   - rs to resolve HTTP addresses.
@@ -24,7 +25,7 @@ func NewResolveRoundTripper(rs sysnet.Resolver, rt http.RoundTripper) *ResolveRo
 	}
 }
 
-// Resolve HTTP address and perform HTTP transaction.
+// RoundTrip resolves HTTP address and perform HTTP transaction.
 func (r *ResolveRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
 	addr, err := r.rs.Resolve(req.Context(), req.URL.Hostname())
 	if err != nil {

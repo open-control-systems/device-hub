@@ -12,6 +12,15 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
+    # https://github.com/marketplace/actions/golangci-lint#annotations
+    permissions:
+      # Required: allow read access to the content for analysis.
+      contents: read
+      # Optional: allow read access to pull request. Use with `only-new-issues` option.
+      pull-requests: read
+      # Optional: allow write access to checks to allow the action to annotate code in the PR.
+      checks: write
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -21,16 +30,16 @@ jobs:
         with:
           go-version: 1.23
 
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: v1.60
+          only-new-issues: true
+          args: ./...
+
       - name: Build application
         shell: bash
         run: |
-          gofmt -w .
-
-          if [ -n "$(git status --porcelain .)" ]; then
-            echo "Please run 'gofmt -w' and commit the updated files."
-            exit 1
-          fi
-
           go mod download
           go build ./...
           go test ./...

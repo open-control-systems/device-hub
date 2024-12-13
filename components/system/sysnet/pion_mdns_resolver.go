@@ -12,6 +12,8 @@ import (
 	"github.com/pion/mdns"
 )
 
+// PionMdnsResolver implements mDNS resolving.
+//
 // It was decided to use the pure Go library for mDNS resolution, since the internal
 // Go resolver behaves differently depending on the environment it's running in.
 // For example, it can properly resolve mDNS addresses when running on the host machine,
