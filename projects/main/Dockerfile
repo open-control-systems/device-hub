@@ -9,7 +9,9 @@ COPY components ./components
 COPY projects/main ./projects/main
 
 WORKDIR /app/projects/main
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /app/device-hub .
+
+ARG GOARCH=amd64
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=${GOARCH} go build -o /app/device-hub .
 
 FROM gcr.io/distroless/base-debian11
 COPY --from=builder /app/device-hub /
