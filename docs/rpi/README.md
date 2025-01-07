@@ -201,6 +201,6 @@ sudo nmcli device wifi connect "bonsai-growlab-369C92005E9930A1D" password "bons
 
 **Monitor device data in influxdb**
 
-Open `locahost:8080` in a browser and enter the influxdb credentials. Ensure SSH port forwarding is enabled. Navigate to the Data Explorer, select the required data type, telemetry or registration, then select the device ID. It's also possible to explore the data using the pre-configured dashboards. See the example below.
+Open `locahost:8080` in a browser and enter the influxdb credentials. Ensure SSH port forwarding is enabled. Navigate to the Data Explorer, select the required data type, telemetry or registration, then select the device ID. It's also possible to explore the data using the pre-configured [dashboards](../../templates/influxdb). See the example below.
 
 ![InfluxDB Dashboard Example](influxdb_example_dashboard.png)
