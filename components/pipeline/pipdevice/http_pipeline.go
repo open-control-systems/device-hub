@@ -1,4 +1,4 @@
-package pipeline
+package pipdevice
 
 import (
 	"context"
@@ -7,6 +7,8 @@ import (
 	"github.com/open-control-systems/device-hub/components/core"
 	"github.com/open-control-systems/device-hub/components/device"
 	"github.com/open-control-systems/device-hub/components/http/htclient"
+	"github.com/open-control-systems/device-hub/components/http/htcore"
+	"github.com/open-control-systems/device-hub/components/system/syscore"
 	"github.com/open-control-systems/device-hub/components/system/sysnet"
 	"github.com/open-control-systems/device-hub/components/system/syssched"
 )
@@ -39,17 +41,31 @@ type HTTPPipelineParams struct {
 //
 // Parameters:
 //   - ctx - parent context.
-//   - closer - to register all resources that should be closed.
-//   - dataHandler - to handle device data.
+//   - closer to register all resources that should be closed.
+//   - dataHandler to handle device data.
+//   - remoteLastClock to obtain the last system time of the device.
 //   - params - various pipeline parameters.
 func NewHTTPPipeline(
 	ctx context.Context,
 	closer *core.FanoutCloser,
 	dataHandler device.DataHandler,
+	remoteLastClock syscore.SystemClock,
 	params HTTPPipelineParams,
 ) *HTTPPipeline {
 	resolver := &sysnet.PionMdnsResolver{}
 	closer.Add("pion-mdns-resolver", resolver)
+
+	localClock := &syscore.LocalSystemClock{}
+
+	remoteCurrClock := htcore.NewSystemClock(
+		ctx,
+		htclient.NewResolveClient(resolver),
+		params.BaseURL+"/system/time",
+		params.FetchTimeout,
+	)
+
+	clockSynchronizer := syscore.NewSystemClockSynchronizer(
+		localClock, remoteLastClock, remoteCurrClock)
 
 	pollDevice := device.NewPollDevice(
 		htclient.NewURLFetcher(
@@ -65,6 +81,7 @@ func NewHTTPPipeline(
 			params.FetchTimeout,
 		),
 		dataHandler,
+		clockSynchronizer,
 	)
 
 	pipeline := &HTTPPipeline{
@@ -86,9 +103,9 @@ func (p *HTTPPipeline) Start() {
 
 // Close ends device data processing.
 func (p *HTTPPipeline) Close() error {
-	core.LogInf.Printf(p.id, ": stopping")
+	core.LogInf.Printf("%s: stopping\n", p.id)
 	<-p.doneCh
-	core.LogInf.Println(p.id, ": stopped")
+	core.LogInf.Printf("%s: stopped\n", p.id)
 
 	return nil
 }

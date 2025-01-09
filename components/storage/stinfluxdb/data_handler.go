@@ -8,8 +8,8 @@ import (
 	influxdb2 "github.com/influxdata/influxdb-client-go/v2"
 	"github.com/influxdata/influxdb-client-go/v2/api"
 
-	"github.com/open-control-systems/device-hub/components/core"
 	"github.com/open-control-systems/device-hub/components/device"
+	"github.com/open-control-systems/device-hub/components/system/syscore"
 )
 
 // DataHandler stores incoming data in influxDB.
@@ -18,34 +18,27 @@ import (
 //   - https://docs.influxdata.com/influxdb/cloud/get-started
 //   - https://docs.influxdata.com/influxdb/cloud/api-guide/client-libraries/go/
 type DataHandler struct {
-	ctx         context.Context
-	dbClient    influxdb2.Client
-	writeClient api.WriteAPIBlocking
+	ctx    context.Context
+	clock  syscore.SystemClock
+	client api.WriteAPIBlocking
 }
 
 // NewDataHandler initializes influxDB handler.
 //
 // Parameters:
 //   - ctx - parent context.
-//   - closer - to register the handler for the underlying resource deallocation.
-//   - params - various influxDB configuration parameters.
+//   - clock to update the most recent UNIX time.
+//   - client to write data to the influxdb.
 func NewDataHandler(
 	ctx context.Context,
-	closer *core.FanoutCloser,
-	params DbParams,
+	clock syscore.SystemClock,
+	client api.WriteAPIBlocking,
 ) *DataHandler {
-	dbClient := influxdb2.NewClient(params.URL, params.Token)
-	writeClient := dbClient.WriteAPIBlocking(params.Org, params.Bucket)
-
-	handler := &DataHandler{
-		ctx:         ctx,
-		dbClient:    dbClient,
-		writeClient: writeClient,
+	return &DataHandler{
+		ctx:    ctx,
+		clock:  clock,
+		client: client,
 	}
-
-	closer.Add("influxdb-data-handler", handler)
-
-	return handler
 }
 
 // HandleTelemetry stores telemetry data in influxDB.
@@ -56,13 +49,6 @@ func (h *DataHandler) HandleTelemetry(deviceID string, js device.JSON) error {
 // HandleRegistration stores registration data in influxDB.
 func (h *DataHandler) HandleRegistration(deviceID string, js device.JSON) error {
 	return h.handleData("registration", deviceID, js)
-}
-
-// Close stops writing data to the DB.
-func (h *DataHandler) Close() error {
-	h.dbClient.Close()
-
-	return nil
 }
 
 func (h *DataHandler) handleData(dataID string, deviceID string, js device.JSON) error {
@@ -83,9 +69,9 @@ func (h *DataHandler) handleData(dataID string, deviceID string, js device.JSON)
 		js,
 		unixTimestamp)
 
-	if err := h.writeClient.WritePoint(h.ctx, point); err != nil {
+	if err := h.client.WritePoint(h.ctx, point); err != nil {
 		return fmt.Errorf("influxdb-data-handler: failed to write to DB: %w", err)
 	}
 
-	return nil
+	return h.clock.SetTimestamp(unixTimestamp.Unix())
 }
