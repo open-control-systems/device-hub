@@ -132,11 +132,17 @@ curl http://localhost:8086/api/v2/authorizations \
   -H 'Content-type: application/json' \
   --data '{
   "status": "active",
-  "description": "device-hub API token",
+  "description": "device-hub r/w API token",
   "orgId": "<orgId>",
   "permissions": [
     {
       "action": "write",
+      "resource": {
+        "type": "buckets"
+      }
+    },
+    {
+      "action": "read",
       "resource": {
         "type": "buckets"
       }

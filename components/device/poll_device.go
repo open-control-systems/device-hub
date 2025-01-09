@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/open-control-systems/device-hub/components/core"
 	"github.com/open-control-systems/device-hub/components/status"
 )
 
@@ -12,6 +13,7 @@ type PollDevice struct {
 	registrationFetcher Fetcher
 	telemetryFetcher    Fetcher
 	dataHandler         DataHandler
+	timeSynchronizer    TimeSynchronizer
 	deviceID            string
 }
 
@@ -21,15 +23,18 @@ type PollDevice struct {
 //   - registrationFetcher to fetch device registration data.
 //   - telemetryFetcher to fetch device telemetry data.
 //   - dataHandler to handle fetched telemetry and registration data.
+//   - timeSynchronizer to synchronize the UNIX time for a device.
 func NewPollDevice(
 	registrationFetcher Fetcher,
 	telemetryFetcher Fetcher,
 	dataHandler DataHandler,
+	timeSynchronizer TimeSynchronizer,
 ) *PollDevice {
 	return &PollDevice{
 		registrationFetcher: registrationFetcher,
 		telemetryFetcher:    telemetryFetcher,
 		dataHandler:         dataHandler,
+		timeSynchronizer:    timeSynchronizer,
 	}
 }
 
@@ -68,30 +73,14 @@ func (d *PollDevice) fetchRegistration() (JSON, error) {
 		return nil, err
 	}
 
-	if err := validateTimestamp(js); err != nil {
+	err = d.parseDeviceID(js)
+	if err != nil {
 		return nil, err
 	}
 
-	id, ok := js["device_id"]
-	if !ok {
-		return nil, fmt.Errorf(
-			"poll-device: failed to fetch registration: missing device_id field")
+	if err := d.validateTimestamp(js); err != nil {
+		return nil, err
 	}
-
-	deviceID, ok := id.(string)
-	if !ok {
-		return nil, fmt.Errorf(
-			"poll-device: failed to fetch registration: invalid type for device_id")
-	}
-
-	if d.deviceID != "" && d.deviceID != deviceID {
-		return nil, fmt.Errorf(
-			"poll-device: failed to fetch registration: device ID mismatch: want=%s got=%s",
-			d.deviceID, deviceID,
-		)
-	}
-
-	d.deviceID = deviceID
 
 	return js, nil
 }
@@ -109,14 +98,14 @@ func (d *PollDevice) fetchTelemetry() (JSON, error) {
 		return nil, err
 	}
 
-	if err := validateTimestamp(js); err != nil {
+	if err := d.validateTimestamp(js); err != nil {
 		return nil, err
 	}
 
 	return js, nil
 }
 
-func validateTimestamp(js JSON) error {
+func (d *PollDevice) validateTimestamp(js JSON) error {
 	ts, ok := js["timestamp"]
 	if !ok {
 		return fmt.Errorf("poll-device: failed to fetch data: missing timestamp field")
@@ -128,8 +117,39 @@ func validateTimestamp(js JSON) error {
 	}
 
 	if timestamp == -1 {
+		core.LogInf.Printf("poll-device: start syncing time for device: ID=%v\n", d.deviceID)
+
+		if err := d.timeSynchronizer.Synchronize(); err != nil {
+			return err
+		}
+
 		return fmt.Errorf("poll-device: failed to fetch data: invalid timestamp")
 	}
+
+	return nil
+}
+
+func (d *PollDevice) parseDeviceID(js JSON) error {
+	id, ok := js["device_id"]
+	if !ok {
+		return fmt.Errorf(
+			"poll-device: failed to fetch registration: missing device_id field")
+	}
+
+	deviceID, ok := id.(string)
+	if !ok {
+		return fmt.Errorf(
+			"poll-device: failed to fetch registration: invalid type for device_id")
+	}
+
+	if d.deviceID != "" && d.deviceID != deviceID {
+		return fmt.Errorf(
+			"poll-device: failed to fetch registration: device ID mismatch: want=%s got=%s",
+			d.deviceID, deviceID,
+		)
+	}
+
+	d.deviceID = deviceID
 
 	return nil
 }
