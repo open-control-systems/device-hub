@@ -1,4 +1,4 @@
-package stinfluxdb
+package pipeline
 
 import (
 	"context"
@@ -13,7 +13,7 @@ import (
 
 // HTTPPipeline fetches device data over HTTP and store it in the influxDB database.
 type HTTPPipeline struct {
-	dbParams      DbParams
+	id            string
 	fetchInterval time.Duration
 	ctx           context.Context
 	task          syssched.Task
@@ -22,8 +22,8 @@ type HTTPPipeline struct {
 
 // HTTPPipelineParams provides various configuration options for HttpPipeline.
 type HTTPPipelineParams struct {
-	// DbParams provides various configuration options for influxDB.
-	DbParams DbParams
+	// ID - unique pipeline identifier, to distinguish one pipeline from another.
+	ID string
 
 	// BaseURL - device API base URL.
 	BaseURL string
@@ -40,15 +40,14 @@ type HTTPPipelineParams struct {
 // Parameters:
 //   - ctx - parent context.
 //   - closer - to register all resources that should be closed.
+//   - dataHandler - to handle device data.
 //   - params - various pipeline parameters.
 func NewHTTPPipeline(
 	ctx context.Context,
 	closer *core.FanoutCloser,
+	dataHandler device.DataHandler,
 	params HTTPPipelineParams,
 ) *HTTPPipeline {
-	dataHandler := newDataHandler(ctx, params.DbParams)
-	closer.Add("influxdb-data-handler", dataHandler)
-
 	resolver := &sysnet.PionMdnsResolver{}
 	closer.Add("pion-mdns-resolver", resolver)
 
@@ -69,30 +68,27 @@ func NewHTTPPipeline(
 	)
 
 	pipeline := &HTTPPipeline{
-		dbParams:      params.DbParams,
+		id:            params.ID,
 		fetchInterval: params.FetchInterval,
 		ctx:           ctx,
 		task:          pollDevice,
 		doneCh:        make(chan struct{}),
 	}
-	closer.Add("influxdb-http-pipeline", pipeline)
+	closer.Add(params.ID, pipeline)
 
 	return pipeline
 }
 
 // Start begins asynchronous data processing.
 func (p *HTTPPipeline) Start() {
-	core.LogInf.Printf("influxdb-http-pipeline: starting: url=%s org=%s bucket=%s\n",
-		p.dbParams.URL, p.dbParams.Org, p.dbParams.Bucket)
-
 	go p.run()
 }
 
 // Close ends device data processing.
 func (p *HTTPPipeline) Close() error {
-	core.LogInf.Println("influxdb-http-pipeline: stopping")
+	core.LogInf.Printf(p.id, ": stopping")
 	<-p.doneCh
-	core.LogInf.Println("influxdb-http-pipeline: stopped")
+	core.LogInf.Println(p.id, ": stopped")
 
 	return nil
 }
@@ -106,8 +102,7 @@ func (p *HTTPPipeline) run() {
 		select {
 		case <-ticker.C:
 			if err := p.task.Run(); err != nil {
-				core.LogErr.Printf(
-					"influxdb-http-pipeline: failed to handle device data: %v\n", err)
+				core.LogErr.Printf("%s: failed to handle device data: %v\n", p.id, err)
 			}
 
 		case <-p.ctx.Done():

@@ -8,54 +8,64 @@ import (
 	influxdb2 "github.com/influxdata/influxdb-client-go/v2"
 	"github.com/influxdata/influxdb-client-go/v2/api"
 
+	"github.com/open-control-systems/device-hub/components/core"
 	"github.com/open-control-systems/device-hub/components/device"
 )
 
-// dataHandler stores incoming data in influxDB.
+// DataHandler stores incoming data in influxDB.
 //
 // References:
 //   - https://docs.influxdata.com/influxdb/cloud/get-started
 //   - https://docs.influxdata.com/influxdb/cloud/api-guide/client-libraries/go/
-type dataHandler struct {
+type DataHandler struct {
 	ctx         context.Context
 	dbClient    influxdb2.Client
 	writeClient api.WriteAPIBlocking
 }
 
-// newDataHandler initializes influxDB handler.
+// NewDataHandler initializes influxDB handler.
 //
 // Parameters:
 //   - ctx - parent context.
+//   - closer - to register the handler for the underlying resource deallocation.
 //   - params - various influxDB configuration parameters.
-func newDataHandler(ctx context.Context, params DbParams) *dataHandler {
+func NewDataHandler(
+	ctx context.Context,
+	closer *core.FanoutCloser,
+	params DbParams,
+) *DataHandler {
 	dbClient := influxdb2.NewClient(params.URL, params.Token)
 	writeClient := dbClient.WriteAPIBlocking(params.Org, params.Bucket)
 
-	return &dataHandler{
+	handler := &DataHandler{
 		ctx:         ctx,
 		dbClient:    dbClient,
 		writeClient: writeClient,
 	}
+
+	closer.Add("influxdb-data-handler", handler)
+
+	return handler
 }
 
 // HandleTelemetry stores telemetry data in influxDB.
-func (h *dataHandler) HandleTelemetry(deviceID string, js device.JSON) error {
+func (h *DataHandler) HandleTelemetry(deviceID string, js device.JSON) error {
 	return h.handleData("telemetry", deviceID, js)
 }
 
 // HandleRegistration stores registration data in influxDB.
-func (h *dataHandler) HandleRegistration(deviceID string, js device.JSON) error {
+func (h *DataHandler) HandleRegistration(deviceID string, js device.JSON) error {
 	return h.handleData("registration", deviceID, js)
 }
 
 // Close stops writing data to the DB.
-func (h *dataHandler) Close() error {
+func (h *DataHandler) Close() error {
 	h.dbClient.Close()
 
 	return nil
 }
 
-func (h *dataHandler) handleData(dataID string, deviceID string, js device.JSON) error {
+func (h *DataHandler) handleData(dataID string, deviceID string, js device.JSON) error {
 	ts, ok := js["timestamp"]
 	if !ok {
 		return fmt.Errorf("influxdb-data-handler: missed timestamp field")
