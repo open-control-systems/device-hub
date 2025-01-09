@@ -46,7 +46,7 @@ func NewHTTPPipeline(
 	closer *core.FanoutCloser,
 	params HTTPPipelineParams,
 ) *HTTPPipeline {
-	dataHandler := NewDataHandler(ctx, params.DbParams)
+	dataHandler := newDataHandler(ctx, params.DbParams)
 	closer.Add("influxdb-data-handler", dataHandler)
 
 	resolver := &sysnet.PionMdnsResolver{}

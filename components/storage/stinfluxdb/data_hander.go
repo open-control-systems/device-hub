@@ -10,27 +10,27 @@ import (
 	"github.com/open-control-systems/device-hub/components/device"
 )
 
-// DataHandler stores incoming data in influxDB.
+// dataHandler stores incoming data in influxDB.
 //
 // References:
 //   - https://docs.influxdata.com/influxdb/cloud/get-started
 //   - https://docs.influxdata.com/influxdb/cloud/api-guide/client-libraries/go/
-type DataHandler struct {
+type dataHandler struct {
 	ctx         context.Context
 	dbClient    influxdb2.Client
 	writeClient api.WriteAPIBlocking
 }
 
-// NewDataHandler initializes influxDB handler.
+// newDataHandler initializes influxDB handler.
 //
 // Parameters:
 //   - ctx - parent context.
 //   - params - various influxDB configuration parameters.
-func NewDataHandler(ctx context.Context, params DbParams) *DataHandler {
+func newDataHandler(ctx context.Context, params DbParams) *dataHandler {
 	dbClient := influxdb2.NewClient(params.URL, params.Token)
 	writeClient := dbClient.WriteAPIBlocking(params.Org, params.Bucket)
 
-	return &DataHandler{
+	return &dataHandler{
 		ctx:         ctx,
 		dbClient:    dbClient,
 		writeClient: writeClient,
@@ -38,23 +38,23 @@ func NewDataHandler(ctx context.Context, params DbParams) *DataHandler {
 }
 
 // HandleTelemetry stores telemetry data in influxDB.
-func (h *DataHandler) HandleTelemetry(deviceID string, js device.JSON) error {
+func (h *dataHandler) HandleTelemetry(deviceID string, js device.JSON) error {
 	return h.handleData("telemetry", deviceID, js)
 }
 
 // HandleRegistration stores registration data in influxDB.
-func (h *DataHandler) HandleRegistration(deviceID string, js device.JSON) error {
+func (h *dataHandler) HandleRegistration(deviceID string, js device.JSON) error {
 	return h.handleData("registration", deviceID, js)
 }
 
 // Close stops writing data to the DB.
-func (h *DataHandler) Close() error {
+func (h *dataHandler) Close() error {
 	h.dbClient.Close()
 
 	return nil
 }
 
-func (h *DataHandler) handleData(dataID string, deviceID string, js device.JSON) error {
+func (h *dataHandler) handleData(dataID string, deviceID string, js device.JSON) error {
 	ts, ok := js["timestamp"]
 	if !ok {
 		return fmt.Errorf("influxdb-data-handler: missed timestamp field")
