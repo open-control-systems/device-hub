@@ -5,8 +5,9 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/open-control-systems/device-hub/components/status"
 	"github.com/stretchr/testify/require"
+
+	"github.com/open-control-systems/device-hub/components/status"
 )
 
 type testFetcher struct {
