@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/open-control-systems/device-hub/components/core"
+	"github.com/open-control-systems/device-hub/components/pipeline"
 	"github.com/open-control-systems/device-hub/components/storage/stinfluxdb"
 )
 
@@ -30,16 +31,19 @@ func main() {
 		}
 	}()
 
-	devicePipeline := stinfluxdb.NewHTTPPipeline(
+	devicePipeline := pipeline.NewHTTPPipeline(
 		appContext,
 		fanoutCloser,
-		stinfluxdb.HTTPPipelineParams{
-			DbParams: stinfluxdb.DbParams{
+		stinfluxdb.NewDataHandler(
+			appContext,
+			fanoutCloser,
+			stinfluxdb.DbParams{
 				URL:    os.Getenv("INFLUXDB_URL"),
 				Org:    os.Getenv("INFLUXDB_ORG"),
 				Bucket: os.Getenv("INFLUXDB_BUCKET"),
 				Token:  os.Getenv("INFLUXDB_API_TOKEN"),
-			},
+			}),
+		pipeline.HTTPPipelineParams{
 			BaseURL:       os.Getenv("DEVICE_HUB_API_BASE_URL"),
 			FetchInterval: time.Second * 5,
 			FetchTimeout:  time.Second * 10,
