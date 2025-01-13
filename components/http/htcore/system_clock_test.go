@@ -10,8 +10,6 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-
-	"github.com/open-control-systems/device-hub/components/http/htclient"
 )
 
 type testHandler struct {
@@ -80,7 +78,7 @@ func TestHTTPSystemClockSetGetTimestamp(t *testing.T) {
 	url := server.URL + "/api/v1/system/time"
 	timeout := time.Second * 10
 	ctx := context.Background()
-	client := htclient.NewDefaultClient()
+	client := NewDefaultClient()
 
 	clock := NewSystemClock(ctx, client, url, timeout)
 

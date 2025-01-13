@@ -6,7 +6,6 @@ import (
 
 	"github.com/open-control-systems/device-hub/components/core"
 	"github.com/open-control-systems/device-hub/components/device"
-	"github.com/open-control-systems/device-hub/components/http/htclient"
 	"github.com/open-control-systems/device-hub/components/http/htcore"
 	"github.com/open-control-systems/device-hub/components/system/syscore"
 	"github.com/open-control-systems/device-hub/components/system/sysnet"
@@ -59,7 +58,7 @@ func NewHTTPPipeline(
 
 	remoteCurrClock := htcore.NewSystemClock(
 		ctx,
-		htclient.NewResolveClient(resolver),
+		htcore.NewResolveClient(resolver),
 		params.BaseURL+"/system/time",
 		params.FetchTimeout,
 	)
@@ -68,15 +67,15 @@ func NewHTTPPipeline(
 		localClock, remoteLastClock, remoteCurrClock)
 
 	pollDevice := device.NewPollDevice(
-		htclient.NewURLFetcher(
+		htcore.NewURLFetcher(
 			ctx,
-			htclient.NewResolveClient(resolver),
+			htcore.NewResolveClient(resolver),
 			params.BaseURL+"/registration",
 			params.FetchTimeout,
 		),
-		htclient.NewURLFetcher(
+		htcore.NewURLFetcher(
 			ctx,
-			htclient.NewResolveClient(resolver),
+			htcore.NewResolveClient(resolver),
 			params.BaseURL+"/telemetry",
 			params.FetchTimeout,
 		),
