@@ -2,72 +2,58 @@ package htcore
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"strconv"
+	"sync"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
 )
 
-type testHandler struct {
+type testClock struct {
+	mu        sync.Mutex
 	timestamp int64
-	err       error
+	setErr    error
+	getErr    error
 }
 
-func newTestHandler(timestamp int64) *testHandler {
-	return &testHandler{
+func (c *testClock) SetTimestamp(timestamp int64) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	if c.setErr != nil {
+		return c.setErr
+	}
+
+	c.timestamp = timestamp
+
+	return nil
+}
+
+func (c *testClock) GetTimestamp() (int64, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	if c.getErr != nil {
+		return -1, c.getErr
+	}
+
+	return c.timestamp, nil
+}
+
+func newTestClock(timestamp int64) *testClock {
+	return &testClock{
 		timestamp: timestamp,
 	}
 }
 
-func (h *testHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if h.err != nil {
-		http.Error(w, h.err.Error(), http.StatusInternalServerError)
-
-		return
-	}
-
-	if r.Method != http.MethodGet {
-		http.Error(w, "error: unsupported method", http.StatusMethodNotAllowed)
-
-		return
-	}
-
-	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-
-	response := ""
-
-	str := r.URL.Query().Get("value")
-	if str == "" {
-		response = strconv.FormatInt(h.timestamp, 10)
-	} else {
-		timestamp, err := strconv.ParseInt(str, 10, 64)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-
-			return
-		}
-
-		h.timestamp = timestamp
-
-		response = "OK"
-	}
-
-	w.Header().Set("Content-Length", strconv.Itoa(len(response)))
-	w.WriteHeader(http.StatusOK)
-
-	if _, err := fmt.Fprint(w, response); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-	}
-}
-
 func TestHTTPSystemClockSetGetTimestamp(t *testing.T) {
-	currTimestamp := int64(-1)
+	currTimestamp := int64(123)
+	startPoint := currTimestamp * 2
 
-	handler := newTestHandler(currTimestamp)
+	testClock := newTestClock(currTimestamp)
+	handler := NewSystemClockHandler(testClock, time.Unix(startPoint, 0))
 
 	mux := http.NewServeMux()
 	mux.Handle("/api/v1/system/time", handler)
@@ -84,9 +70,9 @@ func TestHTTPSystemClockSetGetTimestamp(t *testing.T) {
 
 	recvTimestamp, err := clock.GetTimestamp()
 	require.Nil(t, err)
-	require.Equal(t, currTimestamp, recvTimestamp)
+	require.Equal(t, int64(-1), recvTimestamp)
 
-	newTimestamp := time.Now().Unix()
+	newTimestamp := startPoint * 2
 	require.NotEqual(t, currTimestamp, newTimestamp)
 
 	require.Nil(t, clock.SetTimestamp(newTimestamp))

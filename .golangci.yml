@@ -66,6 +66,12 @@ linters-settings:
       - name: error-naming
         severity: warning
         disabled: true
+      # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#cognitive-complexity
+      - name: cognitive-complexity
+        severity: warning
+        disabled: true
+        exclude: [""]
+        arguments: [7]
 
 issues:
   include:
