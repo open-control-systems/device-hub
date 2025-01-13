@@ -6,8 +6,6 @@ import (
 	"net/http"
 	"strconv"
 	"time"
-
-	"github.com/open-control-systems/device-hub/components/http/htclient"
 )
 
 // SystemClock handles the UNIX time for the HTTP resource.
@@ -15,7 +13,7 @@ type SystemClock struct {
 	url     string
 	timeout time.Duration
 	ctx     context.Context
-	client  *htclient.HTTPClient
+	client  *HTTPClient
 }
 
 // NewSystemClock initializes HTTPSystemClock.
@@ -27,7 +25,7 @@ type SystemClock struct {
 //   - timeout - HTTP request timeout.
 func NewSystemClock(
 	ctx context.Context,
-	client *htclient.HTTPClient,
+	client *HTTPClient,
 	url string,
 	timeout time.Duration,
 ) *SystemClock {

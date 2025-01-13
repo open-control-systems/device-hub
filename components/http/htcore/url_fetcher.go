@@ -1,4 +1,4 @@
-package htclient
+package htcore
 
 import (
 	"context"
