@@ -20,6 +20,8 @@ services:
       context: ../../
       dockerfile: projects/main/Dockerfile
     image: device-hub:latest
+    cap_add:
+      - SYS_TIME
     network_mode: host
     container_name: device-hub
     environment:
