@@ -261,4 +261,4 @@ apt-compat  dpkg  logrotate  man-db
 
 **Configure system time**
 
-device-hub can automatically synchronize the UNIX time for the remote device. For more details, see the [documentation](../features.md#System-Time-Synchronization).
+device-hub can automatically synchronize the UNIX time for the remote device. For more details, see the [documentation](../../features.md#System-Time-Synchronization).
