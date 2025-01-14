@@ -43,7 +43,7 @@ type HTTPPipelineParams struct {
 //   - closer to register all resources that should be closed.
 //   - dataHandler to handle device data.
 //   - localClock to handle local UNIX time.
-//   - remoteLastClock to obtain the last system time of the device.
+//   - remoteLastClock to get the last persisted UNIX time.
 //   - params - various pipeline parameters.
 func NewHTTPPipeline(
 	ctx context.Context,

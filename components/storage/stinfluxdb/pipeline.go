@@ -51,7 +51,7 @@ func (p *Pipeline) GetDataHandler() *DataHandler {
 	return p.handler
 }
 
-// GetSystemClock returns the clock to obtain the most recent UNIX time.
+// GetSystemClock returns the clock to get last persisted UNIX time.
 func (p *Pipeline) GetSystemClock() syscore.SystemClock {
 	return p.clock
 }
