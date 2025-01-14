@@ -110,9 +110,10 @@ func (p *HTTPPipeline) Close() error {
 }
 
 func (p *HTTPPipeline) run() {
+	defer close(p.doneCh)
+
 	ticker := time.NewTicker(p.fetchInterval)
 	defer ticker.Stop()
-	defer close(p.doneCh)
 
 	for {
 		select {
