@@ -4,7 +4,7 @@
 
 ## Installation Instructions
 
-- [Raspberry Pi](docs/rpi/README.md)
+- [Raspberry Pi](docs/install/rpi/README.md)
 
 ## Build Status
 
