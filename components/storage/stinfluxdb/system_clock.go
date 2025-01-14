@@ -41,9 +41,10 @@ func newSystemClock(
 }
 
 func (c *systemClock) run() {
+	defer close(c.doneCh)
+
 	ticker := time.NewTicker(c.restoreUpdateInterval)
 	defer ticker.Stop()
-	defer close(c.doneCh)
 
 	for {
 		select {
