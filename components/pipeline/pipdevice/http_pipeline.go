@@ -12,7 +12,7 @@ import (
 	"github.com/open-control-systems/device-hub/components/system/syssched"
 )
 
-// HTTPPipeline fetches device data over HTTP and store it in the influxDB database.
+// HTTPPipeline fetches device data over HTTP.
 type HTTPPipeline struct {
 	id            string
 	fetchInterval time.Duration
@@ -21,7 +21,7 @@ type HTTPPipeline struct {
 	doneCh        chan struct{}
 }
 
-// HTTPPipelineParams provides various configuration options for HttpPipeline.
+// HTTPPipelineParams provides various configuration options for HTTPPipeline.
 type HTTPPipelineParams struct {
 	// ID - unique pipeline identifier, to distinguish one pipeline from another.
 	ID string
