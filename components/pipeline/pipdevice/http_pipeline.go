@@ -102,9 +102,7 @@ func (p *HTTPPipeline) Start() {
 
 // Close ends device data processing.
 func (p *HTTPPipeline) Close() error {
-	core.LogInf.Printf("%s: stopping\n", p.id)
 	<-p.doneCh
-	core.LogInf.Printf("%s: stopped\n", p.id)
 
 	return nil
 }
