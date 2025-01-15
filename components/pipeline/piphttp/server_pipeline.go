@@ -12,6 +12,7 @@ import (
 // ServerPipeline contains various building blocks for HTTP API.
 type ServerPipeline struct {
 	server *htcore.Server
+	mux    *http.ServeMux
 }
 
 // NewServerPipeline initializes all components associated with the HTTP server.
@@ -42,7 +43,13 @@ func NewServerPipeline(
 
 	return &ServerPipeline{
 		server: server,
+		mux:    mux,
 	}, nil
+}
+
+// GetServeMux returns the component to register HTTP endpoints.
+func (p *ServerPipeline) GetServeMux() *http.ServeMux {
+	return p.mux
 }
 
 // Start starts serving HTTP requests.
