@@ -111,6 +111,11 @@ func (p *HTTPPipeline) Close() error {
 	return nil
 }
 
+// GetID returns the unique identifier of the pipeline.
+func (p *HTTPPipeline) GetID() string {
+	return p.id
+}
+
 // GetDeviceID returns the unique identifier of the device.
 func (p *HTTPPipeline) GetDeviceID() string {
 	return p.holder.Get()
