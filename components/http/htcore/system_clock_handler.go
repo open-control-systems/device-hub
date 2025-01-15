@@ -34,8 +34,6 @@ func (h *SystemClockHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-
 	response := ""
 
 	str := r.URL.Query().Get("value")
@@ -71,10 +69,5 @@ func (h *SystemClockHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		response = "OK"
 	}
 
-	w.Header().Set("Content-Length", strconv.Itoa(len(response)))
-	w.WriteHeader(http.StatusOK)
-
-	if _, err := fmt.Fprint(w, response); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-	}
+	WriteText(w, response)
 }
