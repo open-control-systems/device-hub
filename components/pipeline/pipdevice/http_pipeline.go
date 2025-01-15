@@ -2,6 +2,7 @@ package pipdevice
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"github.com/open-control-systems/device-hub/components/core"
@@ -55,8 +56,16 @@ func NewHTTPPipeline(
 	remoteLastClock syscore.SystemClock,
 	params HTTPPipelineParams,
 ) *HTTPPipeline {
-	resolver := &sysnet.PionMdnsResolver{}
-	closer.Add("pion-mdns-resolver", resolver)
+	var resolver sysnet.Resolver
+
+	if strings.Contains(params.BaseURL, ".local") {
+		mdnsResolver := &sysnet.PionMdnsResolver{}
+		closer.Add("pion-mdns-resolver", mdnsResolver)
+
+		resolver = mdnsResolver
+	} else {
+		resolver = &sysnet.TCPResolver{}
+	}
 
 	remoteCurrClock := piphttp.NewSystemClock(
 		ctx,
