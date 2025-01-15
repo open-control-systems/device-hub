@@ -2,11 +2,9 @@ package piphttp
 
 import (
 	"net/http"
-	"time"
 
 	"github.com/open-control-systems/device-hub/components/core"
 	"github.com/open-control-systems/device-hub/components/http/htcore"
-	"github.com/open-control-systems/device-hub/components/system/syscore"
 )
 
 // ServerPipeline contains various building blocks for HTTP API.
@@ -19,18 +17,12 @@ type ServerPipeline struct {
 //
 // Parameters:
 //   - closer - to register handlers for the underlying resource deallocation.
-//   - systemClock to get/set local UNIX time.
 //   - serverParams - various HTTP server configuration parameters.
 func NewServerPipeline(
 	closer *core.FanoutCloser,
-	systemClock syscore.SystemClock,
 	serverParams htcore.ServerParams,
 ) (*ServerPipeline, error) {
 	mux := http.NewServeMux()
-
-	// Time valid since 2024/12/03.
-	clockHandler := htcore.NewSystemClockHandler(systemClock, time.Unix(1733215816, 0))
-	mux.Handle("/api/v1/system/time", clockHandler)
 
 	server, err := htcore.NewServer(mux, serverParams)
 	if err != nil {

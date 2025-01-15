@@ -7,6 +7,7 @@ import (
 	"github.com/open-control-systems/device-hub/components/core"
 	"github.com/open-control-systems/device-hub/components/device"
 	"github.com/open-control-systems/device-hub/components/http/htcore"
+	"github.com/open-control-systems/device-hub/components/pipeline/piphttp"
 	"github.com/open-control-systems/device-hub/components/system/syscore"
 	"github.com/open-control-systems/device-hub/components/system/sysnet"
 	"github.com/open-control-systems/device-hub/components/system/syssched"
@@ -57,7 +58,7 @@ func NewHTTPPipeline(
 	resolver := &sysnet.PionMdnsResolver{}
 	closer.Add("pion-mdns-resolver", resolver)
 
-	remoteCurrClock := htcore.NewSystemClock(
+	remoteCurrClock := piphttp.NewSystemClock(
 		ctx,
 		htcore.NewResolveClient(resolver),
 		params.BaseURL+"/system/time",

@@ -1,4 +1,4 @@
-package piphttp
+package pipdevice
 
 import (
 	"encoding/json"
@@ -6,19 +6,18 @@ import (
 	"net/http"
 
 	"github.com/open-control-systems/device-hub/components/http/htcore"
-	"github.com/open-control-systems/device-hub/components/pipeline/pipdevice"
 )
 
 // DeviceHandler allows to add/remove devices over HTTP API.
 type DeviceHandler struct {
-	store *pipdevice.PipelineStore
+	store *PipelineStore
 }
 
 // NewDeviceHandler is an initialization of DeviceHandler.
 //
 // Parameters:
 //   - store to add/remove devices.
-func NewDeviceHandler(store *pipdevice.PipelineStore) *DeviceHandler {
+func NewDeviceHandler(store *PipelineStore) *DeviceHandler {
 	return &DeviceHandler{store: store}
 }
 
