@@ -84,7 +84,7 @@ func (s *Server) URL() string {
 func (s *Server) run() {
 	defer close(s.doneCh)
 
-	if err := s.server.Serve(s.ln); err != nil {
+	if err := s.server.Serve(s.ln); err != nil && err != http.ErrServerClosed {
 		core.LogErr.Printf("http-server: failed to serve connection: %v\n", err)
 	}
 }
