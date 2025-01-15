@@ -1,4 +1,4 @@
-package htcore
+package piphttp
 
 import (
 	"fmt"
@@ -6,28 +6,29 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/open-control-systems/device-hub/components/http/htcore"
 	"github.com/open-control-systems/device-hub/components/system/syscore"
 )
 
-// SystemClockHandler handles the UNIX time configuration over HTTP.
-type SystemClockHandler struct {
+// SystemTimeHandler handles the UNIX time configuration over HTTP.
+type SystemTimeHandler struct {
 	clock      syscore.SystemClock
 	startPoint time.Time
 }
 
-// NewSystemClockHandler creates an HTTP handler for the UNIX time configuration.
-func NewSystemClockHandler(
+// NewSystemTimeHandler creates an HTTP handler for the UNIX time configuration.
+func NewSystemTimeHandler(
 	clock syscore.SystemClock,
 	startPoint time.Time,
-) *SystemClockHandler {
-	return &SystemClockHandler{
+) *SystemTimeHandler {
+	return &SystemTimeHandler{
 		clock:      clock,
 		startPoint: startPoint,
 	}
 }
 
 // ServeHTTP implements an HTTP endpoint logic.
-func (h *SystemClockHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h *SystemTimeHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "error: unsupported method", http.StatusMethodNotAllowed)
 
@@ -69,5 +70,5 @@ func (h *SystemClockHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		response = "OK"
 	}
 
-	WriteText(w, response)
+	htcore.WriteText(w, response)
 }

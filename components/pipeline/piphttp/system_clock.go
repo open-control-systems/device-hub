@@ -1,4 +1,4 @@
-package htcore
+package piphttp
 
 import (
 	"context"
@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"strconv"
 	"time"
+
+	"github.com/open-control-systems/device-hub/components/http/htcore"
 )
 
 // SystemClock handles the UNIX time for the HTTP resource.
@@ -13,10 +15,10 @@ type SystemClock struct {
 	url     string
 	timeout time.Duration
 	ctx     context.Context
-	client  *HTTPClient
+	client  *htcore.HTTPClient
 }
 
-// NewSystemClock initializes HTTPSystemClock.
+// NewSystemClock initializes SystemClock.
 //
 // Parameters:
 //   - ctx to pass to the HTTP request.
@@ -25,7 +27,7 @@ type SystemClock struct {
 //   - timeout - HTTP request timeout.
 func NewSystemClock(
 	ctx context.Context,
-	client *HTTPClient,
+	client *htcore.HTTPClient,
 	url string,
 	timeout time.Duration,
 ) *SystemClock {

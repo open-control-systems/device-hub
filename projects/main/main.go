@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/spf13/cobra"
 
@@ -43,7 +44,6 @@ func (p *appPipeline) start(ec *envContext) error {
 
 	serverPipeline, err := piphttp.NewServerPipeline(
 		p.closer,
-		p.systemClock,
 		htcore.ServerParams{
 			Port: ec.port,
 		},
@@ -62,9 +62,12 @@ func (p *appPipeline) start(ec *envContext) error {
 	)
 	p.closer.Add("device-pipeline-store", deviceStore)
 
-	deviceHandler := piphttp.NewDeviceHandler(deviceStore)
-
-	registerHTTPRoutes(serverPipeline.GetServeMux(), deviceHandler)
+	registerHTTPRoutes(
+		serverPipeline.GetServeMux(),
+		// Time valid since 2024/12/03.
+		piphttp.NewSystemTimeHandler(p.systemClock, time.Unix(1733215816, 0)),
+		pipdevice.NewDeviceHandler(deviceStore),
+	)
 
 	storagePipeline.Start()
 	serverPipeline.Start()
@@ -76,8 +79,11 @@ func (p *appPipeline) start(ec *envContext) error {
 
 func registerHTTPRoutes(
 	mux *http.ServeMux,
-	deviceHandler *piphttp.DeviceHandler,
+	timeHandler *piphttp.SystemTimeHandler,
+	deviceHandler *pipdevice.DeviceHandler,
 ) {
+	mux.Handle("/api/v1/system/time", timeHandler)
+
 	mux.HandleFunc("/api/v1/device/add", func(w http.ResponseWriter, r *http.Request) {
 		deviceHandler.HandleAdd(w, r)
 	})

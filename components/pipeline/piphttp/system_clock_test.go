@@ -1,4 +1,4 @@
-package htcore
+package piphttp
 
 import (
 	"context"
@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/open-control-systems/device-hub/components/http/htcore"
 	"github.com/stretchr/testify/require"
 )
 
@@ -53,7 +54,7 @@ func TestHTTPSystemClockSetGetTimestamp(t *testing.T) {
 	startPoint := currTimestamp * 2
 
 	testClock := newTestClock(currTimestamp)
-	handler := NewSystemClockHandler(testClock, time.Unix(startPoint, 0))
+	handler := NewSystemTimeHandler(testClock, time.Unix(startPoint, 0))
 
 	mux := http.NewServeMux()
 	mux.Handle("/api/v1/system/time", handler)
@@ -64,7 +65,7 @@ func TestHTTPSystemClockSetGetTimestamp(t *testing.T) {
 	url := server.URL + "/api/v1/system/time"
 	timeout := time.Second * 10
 	ctx := context.Background()
-	client := NewDefaultClient()
+	client := htcore.NewDefaultClient()
 
 	clock := NewSystemClock(ctx, client, url, timeout)
 
