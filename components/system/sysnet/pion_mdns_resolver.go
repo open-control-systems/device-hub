@@ -26,13 +26,13 @@ type PionMdnsResolver struct {
 	closed bool
 }
 
-// Resolve mDNS hostname with pion library.
+// Resolve mDNS address with pion library.
 //
 // Remarks:
 //   - Can be used from multiple goroutines.
-func (r *PionMdnsResolver) Resolve(ctx context.Context, hostname string) (net.Addr, error) {
-	if !strings.Contains(hostname, ".local") {
-		return nil, fmt.Errorf("pion-mdns-resolver: unsupported hostname: %s", hostname)
+func (r *PionMdnsResolver) Resolve(ctx context.Context, address string) (net.Addr, error) {
+	if !strings.Contains(address, ".local") {
+		return nil, fmt.Errorf("pion-mdns-resolver: unsupported network address: %s", address)
 	}
 
 	conn, err := r.getConn()
@@ -40,7 +40,7 @@ func (r *PionMdnsResolver) Resolve(ctx context.Context, hostname string) (net.Ad
 		return nil, err
 	}
 
-	_, addr, err := conn.Query(ctx, hostname)
+	_, addr, err := conn.Query(ctx, address)
 	if err != nil {
 		return nil, err
 	}

@@ -27,11 +27,11 @@ func NewResolveRoundTripper(rs sysnet.Resolver, rt http.RoundTripper) *ResolveRo
 
 // RoundTrip resolves HTTP address and perform HTTP transaction.
 func (r *ResolveRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
-	addr, err := r.rs.Resolve(req.Context(), req.URL.Hostname())
+	addr, err := r.rs.Resolve(req.Context(), req.URL.Host)
 	if err != nil {
 		return nil, fmt.Errorf(
-			"resolve-round-tripper: failed to resolve HTTP address: hostname=%s err=%v",
-			req.URL.Hostname(), err)
+			"resolve-round-tripper: failed to resolve HTTP address: host=%s err=%v",
+			req.URL.Host, err)
 	}
 
 	req.URL.Host = addr.String()
