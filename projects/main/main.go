@@ -3,10 +3,10 @@ package main
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 
 	"github.com/spf13/cobra"
 
@@ -20,7 +20,6 @@ import (
 
 type envContext struct {
 	dbParams stinfluxdb.DbParams
-	baseURL  string
 	port     int
 }
 
@@ -42,21 +41,6 @@ func (p *appPipeline) start(ec *envContext) error {
 		}
 	}()
 
-	storagePipeline := stinfluxdb.NewPipeline(appContext, p.closer, ec.dbParams)
-
-	devicePipeline := pipdevice.NewHTTPPipeline(
-		appContext,
-		p.closer,
-		storagePipeline.GetDataHandler(),
-		p.systemClock,
-		storagePipeline.GetSystemClock(),
-		pipdevice.HTTPPipelineParams{
-			ID:            "influxdb-http-pipeline",
-			BaseURL:       ec.baseURL,
-			FetchInterval: time.Second * 5,
-			FetchTimeout:  time.Second * 10,
-		})
-
 	serverPipeline, err := piphttp.NewServerPipeline(
 		p.closer,
 		p.systemClock,
@@ -68,13 +52,41 @@ func (p *appPipeline) start(ec *envContext) error {
 		return err
 	}
 
+	storagePipeline := stinfluxdb.NewPipeline(appContext, p.closer, ec.dbParams)
+
+	deviceStore := pipdevice.NewPipelineStore(
+		appContext,
+		p.systemClock,
+		storagePipeline.GetSystemClock(),
+		storagePipeline.GetDataHandler(),
+	)
+	p.closer.Add("device-pipeline-store", deviceStore)
+
+	deviceHandler := piphttp.NewDeviceHandler(deviceStore)
+
+	registerHTTPRoutes(serverPipeline.GetServeMux(), deviceHandler)
+
 	storagePipeline.Start()
-	devicePipeline.Start()
 	serverPipeline.Start()
 
 	<-appContext.Done()
 
 	return nil
+}
+
+func registerHTTPRoutes(
+	mux *http.ServeMux,
+	deviceHandler *piphttp.DeviceHandler,
+) {
+	mux.HandleFunc("/api/v1/device/add", func(w http.ResponseWriter, r *http.Request) {
+		deviceHandler.HandleAdd(w, r)
+	})
+	mux.HandleFunc("/api/v1/device/remove", func(w http.ResponseWriter, r *http.Request) {
+		deviceHandler.HandleRemove(w, r)
+	})
+	mux.HandleFunc("/api/v1/device/list", func(w http.ResponseWriter, r *http.Request) {
+		deviceHandler.HandleList(w, r)
+	})
 }
 
 func newAppPipeline() *appPipeline {
@@ -113,13 +125,7 @@ func prepareEnvironment(ec *envContext) error {
 		return err
 	}
 
-	baseURL := os.Getenv("DEVICE_HUB_API_BASE_URL")
-	if baseURL == "" {
-		return fmt.Errorf("environment variable DEVICE_HUB_API_BASE_URL is required")
-	}
-
 	ec.dbParams = dbParams
-	ec.baseURL = baseURL
 
 	return nil
 }
@@ -139,8 +145,7 @@ Required environment variables:
 - INFLUXDB_BUCKET
 - INFLUXDB_API_TOKEN
 
-- DEVICE_HUB_LOG_PATH
-- DEVICE_HUB_API_BASE_URL`,
+- DEVICE_HUB_LOG_PATH`,
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		PreRunE: func(_ *cobra.Command, _ []string) error {

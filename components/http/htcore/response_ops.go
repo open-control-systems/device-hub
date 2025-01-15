@@ -16,3 +16,15 @@ func WriteText(w http.ResponseWriter, text string) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
+
+// WriteJSON writes JSON to HTTP response.
+func WriteJSON(w http.ResponseWriter, buf []byte) {
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Length", strconv.Itoa(len(buf)))
+
+	w.WriteHeader(http.StatusOK)
+
+	if _, err := w.Write(buf); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}

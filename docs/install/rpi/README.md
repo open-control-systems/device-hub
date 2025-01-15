@@ -169,30 +169,16 @@ INFLUXDB_API_TOKEN="<api_token>" \
 INFLUXDB_BUCKET="<bucket>" \
 INFLUXDB_ORG="<org>" \
 DEVICE_HUB_LOG_PATH="/var/log/device-hub/app.log" \
-DEVICE_HUB_API_BASE_URL="http://bonsai-growlab.local/api/v1" \
 docker compose up device-hub -d
 ```
+
+**Configure system time**
+
+device-hub can automatically synchronize the UNIX time for the remote device. For more details, see the [documentation](../../features.md#System-Time-Synchronization).
 
 **Configure network**
 
 The device-hub relies on the mDNS to receive data from the IoT devices. That's why it's required for the devices and the device-hub to be connected to the same WiFi AP. If you have any issues connecting RPi to the WiFi AP, make sure WiFi AP doesn't force WiFi STA to use [PMF](https://en.wikipedia.org/wiki/IEEE_802.11w-2009).
-
-It's also required that the device implements the following HTTP endpoints:
-
-```bash
-# Receive telemetry data.
-#
-# Required fields
-#  - timestamp - valid UNIX timestamp
-http bonsai-growlab.local/api/v1/telemetry
-
-# Receive registration data.
-#
-# Required fields
-#  - timestamp - valid UNIX timestamp
-#  - device_id - unique device identifier, to distinguish one device from another.
-http bonsai-growlab.local/api/v1/registration
-```
 
 The following steps assume that [bonsai firmware](https://github.com/open-control-systems/bonsai-firmware) is installed on the device. Due to specific `bonsai-firmware` settings it's necessary for the device-hub to connect to the `bonsai-firmware` WiFi AP to ensure that device-hub can get the data from the device.
 
@@ -205,9 +191,48 @@ nmcli device wifi list
 sudo nmcli device wifi connect "bonsai-growlab-369C92005E9930A1D" password "bonsai-growlab-369C920"
 ```
 
+**Add device to device-hub**
+
+Ensure that the device implements the following HTTP endpoints:
+
+```bash
+# Receive telemetry data.
+#
+# Required fields
+#  - timestamp - valid UNIX timestamp
+curl http://bonsai-growlab.local/api/v1/telemetry
+
+# Receive registration data.
+#
+# Required fields
+#  - timestamp - valid UNIX timestamp
+#  - device_id - unique device identifier, to distinguish one device from another.
+curl http://bonsai-growlab.local/api/v1/registration
+```
+
+The following examples assume that the device-hub URL is the following: `http://localhost:12345`.
+
+Register a device with the device-hub HTTP API:
+
+```bash
+curl "localhost:12345/api/v1/device/add?uri=http://bonsai-growlab.local/api/v1&id=home-zamioculcas"
+```
+
+Check that the device is correctly registered:
+
+```bash
+curl "localhost:12345/api/v1/device/list"
+```
+
+Remove the device when it's no longer needed:
+
+```bash
+curl "localhost:12345/api/v1/device/remove?uri=http://bonsai-growlab.local/api/v1"
+```
+
 **Monitor device data in influxdb**
 
-Open `locahost:8080` in a browser and enter the influxdb credentials. Ensure SSH port forwarding is enabled. Navigate to the Data Explorer, select the required data type, telemetry or registration, then select the device ID. It's also possible to explore the data using the pre-configured [dashboards](../../templates/influxdb). See the example below.
+Open `locahost:8086` in a browser and enter the influxdb credentials. Ensure SSH port forwarding is enabled. Navigate to the Data Explorer, select the required data type, telemetry or registration, then select the device ID. It's also possible to explore the data using the pre-configured [dashboards](../../templates/influxdb). See the example below.
 
 ![InfluxDB Dashboard Example](influxdb_example_dashboard.png)
 
@@ -258,7 +283,3 @@ Make sure the `cron` job is set for `logrotate`:
 ls /etc/cron.daily/
 apt-compat  dpkg  logrotate  man-db
 ```
-
-**Configure system time**
-
-device-hub can automatically synchronize the UNIX time for the remote device. For more details, see the [documentation](../../features.md#System-Time-Synchronization).

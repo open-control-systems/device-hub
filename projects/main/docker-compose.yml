@@ -29,7 +29,6 @@ services:
       - INFLUXDB_ORG=${INFLUXDB_ORG}
       - INFLUXDB_BUCKET=${INFLUXDB_BUCKET}
       - INFLUXDB_API_TOKEN=${INFLUXDB_API_TOKEN}
-      - DEVICE_HUB_API_BASE_URL=http://bonsai-growlab.local/api/v1
       - DEVICE_HUB_LOG_PATH=${DEVICE_HUB_LOG_PATH}
     volumes:
       - /var/log:/var/log
