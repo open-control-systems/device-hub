@@ -72,8 +72,19 @@ func (s *PipelineStore) Close() error {
 // Add adds the device.
 //
 // Parameters:
-//   - uri - unique device identifier.
-//   - id - human readable device description.
+//   - uri - device URI, how device can be reached.
+//   - id - human readable device identifier.
+//
+// Remarks:
+//   - uri should be unique
+//
+// URI examples:
+//   - http://bonsai-growlab.local/api/v1. mDNS HTTP API
+//   - http://192.168.4.1:17321. Static IP address.
+//
+// ID examples:
+//   - room-plant-zamioculcas
+//   - living-room-light-bulb
 func (s *PipelineStore) Add(uri string, id string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -132,7 +143,7 @@ func (s *PipelineStore) Remove(uri string) error {
 }
 
 // Get returns descriptions for registered devices.
-func (s *PipelineStore) Get() []PipelineStoreItem {
+func (s *PipelineStore) GetDesc() []PipelineStoreItem {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 

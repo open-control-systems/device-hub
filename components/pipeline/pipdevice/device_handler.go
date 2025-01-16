@@ -86,7 +86,7 @@ func (h *DeviceHandler) HandleList(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	buf, err := json.Marshal(h.store.Get())
+	buf, err := json.Marshal(h.store.GetDesc())
 	if err != nil {
 		http.Error(w, fmt.Sprintf("error: failed to format JSON: %v", err),
 			http.StatusInternalServerError)
