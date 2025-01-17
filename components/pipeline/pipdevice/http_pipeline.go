@@ -63,13 +63,19 @@ func NewHTTPPipeline(
 		closer.Add("pion-mdns-resolver", mdnsResolver)
 
 		resolver = mdnsResolver
-	} else {
-		resolver = &sysnet.TCPResolver{}
+	}
+
+	makeHTTPClient := func(r sysnet.Resolver) *htcore.HTTPClient {
+		if r != nil {
+			return htcore.NewResolveClient(r)
+		}
+
+		return htcore.NewDefaultClient()
 	}
 
 	remoteCurrClock := piphttp.NewSystemClock(
 		ctx,
-		htcore.NewResolveClient(resolver),
+		makeHTTPClient(resolver),
 		params.BaseURL+"/system/time",
 		params.FetchTimeout,
 	)
@@ -82,13 +88,13 @@ func NewHTTPPipeline(
 	pollDevice := device.NewPollDevice(
 		htcore.NewURLFetcher(
 			ctx,
-			htcore.NewResolveClient(resolver),
+			makeHTTPClient(resolver),
 			params.BaseURL+"/registration",
 			params.FetchTimeout,
 		),
 		htcore.NewURLFetcher(
 			ctx,
-			htcore.NewResolveClient(resolver),
+			makeHTTPClient(resolver),
 			params.BaseURL+"/telemetry",
 			params.FetchTimeout,
 		),
