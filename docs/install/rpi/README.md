@@ -133,7 +133,7 @@ curl http://localhost:8086/api/v2/authorizations \
   --data '{
   "status": "active",
   "description": "device-hub r/w API token",
-  "orgId": "<orgId>",
+  "orgId": "<org_id>",
   "permissions": [
     {
       "action": "write",
