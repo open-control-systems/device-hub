@@ -168,13 +168,6 @@ func prepareEnvironment(ec *envContext) error {
 		return fmt.Errorf("influxdb token is required")
 	}
 
-	if ec.logPath == "" {
-		return fmt.Errorf("log path is required")
-	}
-	if err := core.SetLogFile(ec.logPath); err != nil {
-		return err
-	}
-
 	if ec.cacheDir != "" {
 		fi, err := os.Stat(ec.cacheDir)
 		if err != nil {
@@ -184,6 +177,13 @@ func prepareEnvironment(ec *envContext) error {
 		if !fi.Mode().IsDir() {
 			return errors.New("cache path should be a directory")
 		}
+	}
+
+	if ec.logPath == "" {
+		return fmt.Errorf("log path is required")
+	}
+	if err := core.SetLogFile(ec.logPath); err != nil {
+		return err
 	}
 
 	return nil
