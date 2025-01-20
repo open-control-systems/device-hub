@@ -77,8 +77,6 @@ func (p *appPipeline) start(ec *envContext) error {
 		db = &stcore.NoopDB{}
 	}
 
-	errorReporter := &pipdevice.LogErrorReporter{}
-
 	deviceStoreParams := pipdevice.PipelineStoreParams{}
 	deviceStoreParams.HTTP.FetchInterval = time.Second * 5
 	deviceStoreParams.HTTP.FetchTimeout = time.Second * 5
@@ -88,7 +86,6 @@ func (p *appPipeline) start(ec *envContext) error {
 		p.systemClock,
 		storagePipeline.GetSystemClock(),
 		storagePipeline.GetDataHandler(),
-		errorReporter,
 		db,
 		deviceStoreParams,
 	)

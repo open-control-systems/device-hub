@@ -14,4 +14,7 @@ var (
 
 	// StatusNoData indicates that there is no enough data to perform an operation.
 	StatusNoData = errors.New("no data")
+
+	// StatusTimeout indicates that an operation was not performed within the timeout.
+	StatusTimeout = errors.New("timeout")
 )

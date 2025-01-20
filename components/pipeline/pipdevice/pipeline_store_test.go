@@ -113,36 +113,6 @@ func (c *testPipelineStoreClock) GetTimestamp() (int64, error) {
 	return c.timestamp, nil
 }
 
-type testPipelineStoreErrorReport struct {
-	uri string
-	err error
-}
-
-type testPipelineStoreErrorReporter struct {
-	reportCh chan testPipelineStoreErrorReport
-}
-
-func (r *testPipelineStoreErrorReporter) waitReport() testPipelineStoreErrorReport {
-	return <-r.reportCh
-}
-
-func newTestPipelineStoreErrorReporter(queueLen int) *testPipelineStoreErrorReporter {
-	return &testPipelineStoreErrorReporter{
-		reportCh: make(chan testPipelineStoreErrorReport, queueLen),
-	}
-}
-
-func (r *testPipelineStoreErrorReporter) ReportError(uri string, _ string, err error) {
-	select {
-	case r.reportCh <- testPipelineStoreErrorReport{
-		uri: uri,
-		err: err,
-	}:
-
-	default:
-	}
-}
-
 type testPipelineStoreHTTPDataHandler struct {
 	js device.JSON
 }
@@ -165,7 +135,6 @@ func TestPipelineStoreStartCloseEmpty(t *testing.T) {
 	db := newTestPipelineStoreDB()
 	clock := &testPipelineStoreClock{}
 	handler := newTestPipelineStoreDataHandler()
-	reporter := newTestPipelineStoreErrorReporter(10)
 
 	storeParams := PipelineStoreParams{}
 	storeParams.HTTP.FetchInterval = time.Millisecond * 500
@@ -176,7 +145,6 @@ func TestPipelineStoreStartCloseEmpty(t *testing.T) {
 		clock,
 		clock,
 		handler,
-		reporter,
 		db,
 		storeParams,
 	)
@@ -191,7 +159,6 @@ func TestPipelineStoreCloseNoStart(t *testing.T) {
 	db := newTestPipelineStoreDB()
 	clock := &testPipelineStoreClock{}
 	handler := newTestPipelineStoreDataHandler()
-	reporter := newTestPipelineStoreErrorReporter(10)
 
 	storeParams := PipelineStoreParams{}
 	storeParams.HTTP.FetchInterval = time.Millisecond * 500
@@ -202,7 +169,6 @@ func TestPipelineStoreCloseNoStart(t *testing.T) {
 		clock,
 		clock,
 		handler,
-		reporter,
 		db,
 		storeParams,
 	)
@@ -215,7 +181,6 @@ func TestPipelineStoreGetDescEmpty(t *testing.T) {
 	db := newTestPipelineStoreDB()
 	clock := &testPipelineStoreClock{}
 	handler := newTestPipelineStoreDataHandler()
-	reporter := newTestPipelineStoreErrorReporter(10)
 
 	storeParams := PipelineStoreParams{}
 	storeParams.HTTP.FetchInterval = time.Millisecond * 500
@@ -226,7 +191,6 @@ func TestPipelineStoreGetDescEmpty(t *testing.T) {
 		clock,
 		clock,
 		handler,
-		reporter,
 		db,
 		storeParams,
 	)
@@ -242,7 +206,6 @@ func TestPipelineStoreRemoveNoAdd(t *testing.T) {
 	db := newTestPipelineStoreDB()
 	clock := &testPipelineStoreClock{}
 	handler := newTestPipelineStoreDataHandler()
-	reporter := newTestPipelineStoreErrorReporter(10)
 
 	storeParams := PipelineStoreParams{}
 	storeParams.HTTP.FetchInterval = time.Millisecond * 500
@@ -253,7 +216,6 @@ func TestPipelineStoreRemoveNoAdd(t *testing.T) {
 		clock,
 		clock,
 		handler,
-		reporter,
 		db,
 		storeParams,
 	)
@@ -268,7 +230,6 @@ func TestPipelineStoreAddURIUnsupportedScheme(t *testing.T) {
 	db := newTestPipelineStoreDB()
 	clock := &testPipelineStoreClock{}
 	handler := newTestPipelineStoreDataHandler()
-	reporter := newTestPipelineStoreErrorReporter(10)
 
 	storeParams := PipelineStoreParams{}
 	storeParams.HTTP.FetchInterval = time.Millisecond * 500
@@ -279,7 +240,6 @@ func TestPipelineStoreAddURIUnsupportedScheme(t *testing.T) {
 		clock,
 		clock,
 		handler,
-		reporter,
 		db,
 		storeParams,
 	)
@@ -294,18 +254,23 @@ func TestPipelineStoreAddRemoveResourceNoResponse(t *testing.T) {
 	db := newTestPipelineStoreDB()
 	clock := &testPipelineStoreClock{}
 	handler := newTestPipelineStoreDataHandler()
-	reporter := newTestPipelineStoreErrorReporter(10)
 
 	storeParams := PipelineStoreParams{}
 	storeParams.HTTP.FetchInterval = time.Millisecond * 500
 	storeParams.HTTP.FetchTimeout = time.Millisecond * 100
 
-	store := NewPipelineStore(
+	ctx, cancelFunc := context.WithTimeoutCause(
 		context.Background(),
+		time.Second*2,
+		status.StatusTimeout,
+	)
+	defer cancelFunc()
+
+	store := NewPipelineStore(
+		ctx,
 		clock,
 		clock,
 		handler,
-		reporter,
 		db,
 		storeParams,
 	)
@@ -327,18 +292,8 @@ func TestPipelineStoreAddRemoveResourceNoResponse(t *testing.T) {
 		require.Nil(t, store.Add(test.uri, test.desc))
 	}
 
-	reports := make(map[string]struct{})
-
-	for {
-		if len(reports) == len(tests) {
-			break
-		}
-
-		report := reporter.waitReport()
-		require.NotNil(t, report.err)
-
-		reports[report.uri] = struct{}{}
-	}
+	<-ctx.Done()
+	require.Equal(t, status.StatusTimeout, context.Cause(ctx))
 
 	for _, test := range tests {
 		found := false
@@ -365,7 +320,6 @@ func TestPipelineStoreAddRemove(t *testing.T) {
 	db := newTestPipelineStoreDB()
 	clock := &testPipelineStoreClock{}
 	handler := newTestPipelineStoreDataHandler()
-	reporter := newTestPipelineStoreErrorReporter(10)
 
 	storeParams := PipelineStoreParams{}
 	storeParams.HTTP.FetchInterval = time.Millisecond * 500
@@ -376,7 +330,6 @@ func TestPipelineStoreAddRemove(t *testing.T) {
 		clock,
 		clock,
 		handler,
-		reporter,
 		db,
 		storeParams,
 	)
@@ -415,7 +368,6 @@ func TestPipelineStoreRestore(t *testing.T) {
 
 	makeStore := func(d stcore.DB, h device.DataHandler) *PipelineStore {
 		clock := &testPipelineStoreClock{}
-		reporter := newTestPipelineStoreErrorReporter(10)
 
 		storeParams := PipelineStoreParams{}
 		storeParams.HTTP.FetchInterval = time.Millisecond * 500
@@ -426,7 +378,6 @@ func TestPipelineStoreRestore(t *testing.T) {
 			clock,
 			clock,
 			h,
-			reporter,
 			d,
 			storeParams,
 		)
@@ -497,7 +448,6 @@ func TestPipelineStoreAddSameDevice(t *testing.T) {
 	db := newTestPipelineStoreDB()
 	clock := &testPipelineStoreClock{}
 	handler := newTestPipelineStoreDataHandler()
-	reporter := newTestPipelineStoreErrorReporter(10)
 
 	storeParams := PipelineStoreParams{}
 	storeParams.HTTP.FetchInterval = time.Millisecond * 500
@@ -508,7 +458,6 @@ func TestPipelineStoreAddSameDevice(t *testing.T) {
 		clock,
 		clock,
 		handler,
-		reporter,
 		db,
 		storeParams,
 	)
@@ -524,7 +473,6 @@ func TestPipelineStoreNoopDB(t *testing.T) {
 	db := &stcore.NoopDB{}
 	clock := &testPipelineStoreClock{}
 	handler := newTestPipelineStoreDataHandler()
-	reporter := newTestPipelineStoreErrorReporter(10)
 
 	storeParams := PipelineStoreParams{}
 	storeParams.HTTP.FetchInterval = time.Millisecond * 500
@@ -535,7 +483,6 @@ func TestPipelineStoreNoopDB(t *testing.T) {
 		clock,
 		clock,
 		handler,
-		reporter,
 		db,
 		storeParams,
 	)
