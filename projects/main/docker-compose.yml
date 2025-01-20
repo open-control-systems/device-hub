@@ -24,13 +24,15 @@ services:
       - SYS_TIME
     network_mode: host
     container_name: device-hub
-    environment:
-      - INFLUXDB_URL=${INFLUXDB_URL}
-      - INFLUXDB_ORG=${INFLUXDB_ORG}
-      - INFLUXDB_BUCKET=${INFLUXDB_BUCKET}
-      - INFLUXDB_API_TOKEN=${INFLUXDB_API_TOKEN}
-      - DEVICE_HUB_LOG_PATH=${DEVICE_HUB_LOG_PATH}
-      - DEVICE_HUB_CACHE_DIR=${DEVICE_HUB_CACHE_DIR}
+    command: [
+      "--http-port", "${DEVICE_HUB_HTTP_PORT}",
+      "--cache-dir", "${DEVICE_HUB_CACHE_DIR}",
+      "--log-path", "${DEVICE_HUB_LOG_PATH}",
+      "--influxdb-url", "${INFLUXDB_URL}",
+      "--influxdb-org", "${INFLUXDB_ORG}",
+      "--influxdb-api-token", "${INFLUXDB_API_TOKEN}",
+      "--influxdb-bucket", "${INFLUXDB_BUCKET}"
+    ]
     volumes:
       - ${DEVICE_HUB_LOG_PATH}:${DEVICE_HUB_LOG_PATH}
       - ${DEVICE_HUB_CACHE_DIR}:${DEVICE_HUB_CACHE_DIR}

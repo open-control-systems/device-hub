@@ -25,6 +25,7 @@ import (
 
 type envContext struct {
 	dbParams stinfluxdb.DbParams
+	logPath  string
 	cacheDir string
 	port     int
 }
@@ -133,37 +134,26 @@ func newAppPipeline() *appPipeline {
 }
 
 func prepareEnvironment(ec *envContext) error {
-	dbParams := stinfluxdb.DbParams{
-		URL:    os.Getenv("INFLUXDB_URL"),
-		Org:    os.Getenv("INFLUXDB_ORG"),
-		Bucket: os.Getenv("INFLUXDB_BUCKET"),
-		Token:  os.Getenv("INFLUXDB_API_TOKEN"),
+	if ec.dbParams.URL == "" {
+		return fmt.Errorf("influxdb URL is required")
+	}
+	if ec.dbParams.Org == "" {
+		return fmt.Errorf("influxdb org is required")
+	}
+	if ec.dbParams.Bucket == "" {
+		return fmt.Errorf("influxdb bucket is required")
+	}
+	if ec.dbParams.Token == "" {
+		return fmt.Errorf("influxdb token is required")
 	}
 
-	if dbParams.URL == "" {
-		return fmt.Errorf("environment variable INFLUXDB_URL is required")
+	if ec.logPath == "" {
+		return fmt.Errorf("log path is required")
 	}
-	if dbParams.Org == "" {
-		return fmt.Errorf("environment variable INFLUXDB_ORG is required")
-	}
-	if dbParams.Bucket == "" {
-		return fmt.Errorf("environment variable INFLUXDB_BUCKET is required")
-	}
-	if dbParams.Token == "" {
-		return fmt.Errorf("environment variable INFLUXDB_API_TOKEN is required")
-	}
-
-	logPath := os.Getenv("DEVICE_HUB_LOG_PATH")
-	if logPath == "" {
-		return fmt.Errorf("environment variable DEVICE_HUB_LOG_PATH is required")
-	}
-	if err := core.SetLogFile(logPath); err != nil {
+	if err := core.SetLogFile(ec.logPath); err != nil {
 		return err
 	}
 
-	if ec.cacheDir == "" {
-		ec.cacheDir = os.Getenv("DEVICE_HUB_CACHE_DIR")
-	}
 	if ec.cacheDir != "" {
 		fi, err := os.Stat(ec.cacheDir)
 		if err != nil {
@@ -175,8 +165,6 @@ func prepareEnvironment(ec *envContext) error {
 		}
 	}
 
-	ec.dbParams = dbParams
-
 	return nil
 }
 
@@ -185,17 +173,9 @@ func main() {
 	envContext := &envContext{}
 
 	cmd := &cobra.Command{
-		Use:   "device-hub",
-		Short: "device-hub CLI",
-		Long: `device-hub collects and stores various data from IoT devices.
-
-Required environment variables:
-- INFLUXDB_URL
-- INFLUXDB_ORG
-- INFLUXDB_BUCKET
-- INFLUXDB_API_TOKEN
-
-- DEVICE_HUB_LOG_PATH`,
+		Use:           "device-hub",
+		Short:         "device-hub CLI",
+		Long:          "device-hub collects and stores various data from IoT devices",
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		PreRunE: func(_ *cobra.Command, _ []string) error {
@@ -206,8 +186,20 @@ Required environment variables:
 		},
 	}
 
-	cmd.Flags().IntVar(&envContext.port, "port", 0, "HTTP server port (0 for random port)")
+	cmd.Flags().IntVar(&envContext.port, "http-port", 0,
+		"HTTP server port (0 for random port)")
+
 	cmd.Flags().StringVar(&envContext.cacheDir, "cache-dir", "", "device-hub cache directory")
+	cmd.Flags().StringVar(&envContext.logPath, "log-path", "", "device-hub log file path")
+
+	cmd.Flags().StringVar(&envContext.dbParams.URL, "influxdb-url", "", "influxdb URL")
+	cmd.Flags().StringVar(&envContext.dbParams.Org, "influxdb-org", "", "influxdb Org")
+
+	cmd.Flags().StringVar(&envContext.dbParams.Token, "influxdb-api-token", "",
+		"influxdb API token")
+
+	cmd.Flags().StringVar(&envContext.dbParams.Bucket, "influxdb-bucket", "",
+		"influxdb bucket")
 
 	if err := cmd.Execute(); err != nil {
 		core.LogErr.Printf("main: failed to execute command: %v\n", err)
