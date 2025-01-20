@@ -44,7 +44,7 @@ func (h *DeviceHandler) HandleAdd(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.store.Add(uri, desc); err != nil {
-		http.Error(w, fmt.Sprintf("error: failed to add device with uri=%v: %v", uri, err),
+		http.Error(w, fmt.Sprintf("error: failed to add device with uri=%s: %v", uri, err),
 			http.StatusBadRequest)
 
 		return
@@ -69,7 +69,7 @@ func (h *DeviceHandler) HandleRemove(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.store.Remove(uri); err != nil {
-		http.Error(w, fmt.Sprintf("error: failed to remove device with uri=%v: %v", uri, err),
+		http.Error(w, fmt.Sprintf("error: failed to remove device with uri=%s: %v", uri, err),
 			http.StatusBadRequest)
 
 		return
