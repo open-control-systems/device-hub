@@ -15,4 +15,4 @@ RUN go build -o /app/device-hub .
 FROM gcr.io/distroless/base-debian12
 COPY --from=builder /app/device-hub /
 
-CMD ["/device-hub"]
+ENTRYPOINT ["/device-hub"]

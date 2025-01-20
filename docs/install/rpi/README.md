@@ -165,11 +165,13 @@ sudo mkdir -p /var/log/device-hub
 docker compose build device-hub
 
 # Run the service.
+INFLUXDB_URL="<influxdb_url>" \
 INFLUXDB_API_TOKEN="<api_token>" \
 INFLUXDB_BUCKET="<bucket>" \
 INFLUXDB_ORG="<org>" \
 DEVICE_HUB_LOG_PATH="/var/log/device-hub/app.log" \
 DEVICE_HUB_CACHE_DIR="/var/cache/device-hub" \
+DEVICE_HUB_HTTP_PORT=0 \
 docker compose up device-hub -d
 ```
 
