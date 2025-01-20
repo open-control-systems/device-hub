@@ -11,4 +11,7 @@ var (
 
 	// StatusNotSupported indicates that an operation isn't supported.
 	StatusNotSupported = errors.New("not implemented")
+
+	// StatusNoData indicates that there is no enough data to perform an operation.
+	StatusNoData = errors.New("no data")
 )

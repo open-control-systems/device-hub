@@ -2,25 +2,30 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
 	"os/signal"
+	"path"
 	"syscall"
 	"time"
 
 	"github.com/spf13/cobra"
+	"go.etcd.io/bbolt"
 
 	"github.com/open-control-systems/device-hub/components/core"
 	"github.com/open-control-systems/device-hub/components/http/htcore"
 	"github.com/open-control-systems/device-hub/components/pipeline/pipdevice"
 	"github.com/open-control-systems/device-hub/components/pipeline/piphttp"
+	"github.com/open-control-systems/device-hub/components/storage/stcore"
 	"github.com/open-control-systems/device-hub/components/storage/stinfluxdb"
 	"github.com/open-control-systems/device-hub/components/system/syscore"
 )
 
 type envContext struct {
 	dbParams stinfluxdb.DbParams
+	cacheDir string
 	port     int
 }
 
@@ -54,11 +59,38 @@ func (p *appPipeline) start(ec *envContext) error {
 
 	storagePipeline := stinfluxdb.NewPipeline(appContext, p.closer, ec.dbParams)
 
+	var db stcore.DB
+
+	if ec.cacheDir != "" {
+		ec.cacheDir = path.Join(ec.cacheDir, "bbolt.db")
+
+		bboltDB, err := stcore.NewBboltDB(ec.cacheDir, &bbolt.Options{
+			Timeout: time.Second * 5,
+		})
+		if err != nil {
+			return err
+		}
+		p.closer.Add("bbolt-database", bboltDB)
+
+		db = stcore.NewBboltDBBucket(bboltDB, "device_bucket")
+	} else {
+		db = &stcore.NoopDB{}
+	}
+
+	errorReporter := &pipdevice.LogErrorReporter{}
+
+	deviceStoreParams := pipdevice.PipelineStoreParams{}
+	deviceStoreParams.HTTP.FetchInterval = time.Second * 5
+	deviceStoreParams.HTTP.FetchTimeout = time.Second * 5
+
 	deviceStore := pipdevice.NewPipelineStore(
 		appContext,
 		p.systemClock,
 		storagePipeline.GetSystemClock(),
 		storagePipeline.GetDataHandler(),
+		errorReporter,
+		db,
+		deviceStoreParams,
 	)
 	p.closer.Add("device-pipeline-store", deviceStore)
 
@@ -69,6 +101,7 @@ func (p *appPipeline) start(ec *envContext) error {
 		pipdevice.NewDeviceHandler(deviceStore),
 	)
 
+	deviceStore.Start()
 	storagePipeline.Start()
 	serverPipeline.Start()
 
@@ -131,6 +164,20 @@ func prepareEnvironment(ec *envContext) error {
 		return err
 	}
 
+	if ec.cacheDir == "" {
+		ec.cacheDir = os.Getenv("DEVICE_HUB_CACHE_DIR")
+	}
+	if ec.cacheDir != "" {
+		fi, err := os.Stat(ec.cacheDir)
+		if err != nil {
+			return err
+		}
+
+		if !fi.Mode().IsDir() {
+			return errors.New("cache path should be a directory")
+		}
+	}
+
 	ec.dbParams = dbParams
 
 	return nil
@@ -163,6 +210,7 @@ Required environment variables:
 	}
 
 	cmd.Flags().IntVar(&envContext.port, "port", 0, "HTTP server port (0 for random port)")
+	cmd.Flags().StringVar(&envContext.cacheDir, "cache-dir", "", "device-hub cache directory")
 
 	if err := cmd.Execute(); err != nil {
 		core.LogErr.Printf("main: failed to execute command: %v\n", err)
