@@ -1,7 +1,7 @@
 package stinfluxdb
 
-// DbParams provides various configuration options for influxDB.
-type DbParams struct {
+// DBParams provides various configuration options for influxDB.
+type DBParams struct {
 	URL    string
 	Org    string
 	Token  string

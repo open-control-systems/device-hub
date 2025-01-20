@@ -13,7 +13,7 @@ import (
 
 type systemClock struct {
 	restoreUpdateInterval time.Duration
-	params                DbParams
+	params                DBParams
 	ctx                   context.Context
 	client                api.QueryAPI
 
@@ -28,7 +28,7 @@ func newSystemClock(
 	ctx context.Context,
 	client api.QueryAPI,
 	restoreUpdateInterval time.Duration,
-	params DbParams,
+	params DBParams,
 ) *systemClock {
 	return &systemClock{
 		restoreUpdateInterval: restoreUpdateInterval,
