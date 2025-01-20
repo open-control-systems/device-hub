@@ -28,6 +28,11 @@ type envContext struct {
 	logPath  string
 	cacheDir string
 	port     int
+
+	deviceHTTP struct {
+		fetchTimeout  string
+		fetchInterval string
+	}
 }
 
 type appPipeline struct {
@@ -78,9 +83,25 @@ func (p *appPipeline) start(ec *envContext) error {
 		db = &stcore.NoopDB{}
 	}
 
+	fetchInterval, err := time.ParseDuration(ec.deviceHTTP.fetchInterval)
+	if err != nil {
+		return err
+	}
+	if fetchInterval < time.Millisecond {
+		return errors.New("HTTP device fetch interval can't be less than 1ms")
+	}
+
+	fetchTimeout, err := time.ParseDuration(ec.deviceHTTP.fetchTimeout)
+	if err != nil {
+		return err
+	}
+	if fetchTimeout < time.Millisecond {
+		return errors.New("HTTP device fetch timeout can't be less than 1ms")
+	}
+
 	deviceStoreParams := pipdevice.StoreParams{}
-	deviceStoreParams.HTTP.FetchInterval = time.Second * 5
-	deviceStoreParams.HTTP.FetchTimeout = time.Second * 5
+	deviceStoreParams.HTTP.FetchInterval = fetchInterval
+	deviceStoreParams.HTTP.FetchTimeout = fetchTimeout
 
 	deviceStore := pipdevice.NewStore(
 		appContext,
@@ -200,6 +221,19 @@ func main() {
 
 	cmd.Flags().StringVar(&envContext.dbParams.Bucket, "influxdb-bucket", "",
 		"influxdb bucket")
+
+	cmd.Flags().StringVar(
+		&envContext.deviceHTTP.fetchInterval,
+		"device-http-fetch-interval", "5s",
+		"HTTP device data fetch interval, in form of: 1h35m10s12ms"+
+			" (valid time units are ms, s, m, h)",
+	)
+	cmd.Flags().StringVar(
+		&envContext.deviceHTTP.fetchTimeout,
+		"device-http-fetch-timeout", "5s",
+		"HTTP device data fetch timeout, in form of: 1h35m10s12ms"+
+			" (valid time units are ms, s, m, h)",
+	)
 
 	if err := cmd.Execute(); err != nil {
 		core.LogErr.Printf("main: failed to execute command: %v\n", err)
