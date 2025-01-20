@@ -24,7 +24,7 @@ import (
 )
 
 type envContext struct {
-	dbParams stinfluxdb.DbParams
+	dbParams stinfluxdb.DBParams
 	logPath  string
 	cacheDir string
 	port     int

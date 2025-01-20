@@ -26,7 +26,7 @@ type Pipeline struct {
 func NewPipeline(
 	ctx context.Context,
 	closer *core.FanoutCloser,
-	params DbParams,
+	params DBParams,
 ) *Pipeline {
 	dbClient := influxdb2.NewClient(params.URL, params.Token)
 	writeClient := dbClient.WriteAPIBlocking(params.Org, params.Bucket)
