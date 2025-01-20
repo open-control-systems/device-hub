@@ -7,14 +7,19 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/open-control-systems/device-hub/components/core"
 	"github.com/open-control-systems/device-hub/components/device"
+	"github.com/open-control-systems/device-hub/components/http/htcore"
+	"github.com/open-control-systems/device-hub/components/pipeline/piphttp"
 	"github.com/open-control-systems/device-hub/components/status"
 	"github.com/open-control-systems/device-hub/components/storage/stcore"
 	"github.com/open-control-systems/device-hub/components/system/syscore"
+	"github.com/open-control-systems/device-hub/components/system/sysnet"
+	"github.com/open-control-systems/device-hub/components/system/syssched"
 )
 
 // PipelineStoreParams represents various configuration options for device pipelines.
@@ -34,7 +39,6 @@ type PipelineStore struct {
 	localClock      syscore.SystemClock
 	remoteLastClock syscore.SystemClock
 	dataHandler     device.DataHandler
-	errorReporter   device.ErrorReporter
 	params          PipelineStoreParams
 
 	mu    sync.Mutex
@@ -58,7 +62,6 @@ type PipelineStoreItem struct {
 //   - localClock to handle local UNIX time.
 //   - remoteLastClock to get the last persisted UNIX time.
 //   - dataHandler to handle device data.
-//   - errorReporter to report errors from the device.
 //   - db to persist device registration life-cycle.
 //   - params - various configuration options for device pipelines.
 func NewPipelineStore(
@@ -66,7 +69,6 @@ func NewPipelineStore(
 	localClock syscore.SystemClock,
 	remoteLastClock syscore.SystemClock,
 	dataHandler device.DataHandler,
-	errorReporter device.ErrorReporter,
 	db stcore.DB,
 	params PipelineStoreParams,
 ) *PipelineStore {
@@ -75,7 +77,6 @@ func NewPipelineStore(
 		localClock:      localClock,
 		remoteLastClock: remoteLastClock,
 		dataHandler:     dataHandler,
-		errorReporter:   errorReporter,
 		params:          params,
 		db:              db,
 		nodes:           make(map[string]*storeNode),
@@ -274,20 +275,21 @@ func (s *PipelineStore) makeNode(uri string, desc string, now time.Time) (*store
 
 	holder := device.NewIDHolder(s.dataHandler)
 
-	pipeline := NewHTTPPipeline(
+	runner := syssched.NewAsyncTaskRunner(
 		ctx,
-		closer,
-		holder,
-		s.errorReporter,
-		s.localClock,
-		s.remoteLastClock,
-		HTTPPipelineParams{
-			BaseURL:       uri,
-			Desc:          desc,
-			FetchInterval: s.params.HTTP.FetchInterval,
-			FetchTimeout:  s.params.HTTP.FetchTimeout,
-		})
-	closer.Add(desc, pipeline)
+		s.newHTTPDevice(
+			ctx,
+			closer,
+			holder,
+			s.localClock,
+			s.remoteLastClock,
+			uri,
+		),
+		&logErrorReporter{uri: uri, desc: desc},
+		s.params.HTTP.FetchInterval,
+	)
+
+	closer.Add(desc, runner)
 
 	return &storeNode{
 		uri:        uri,
@@ -296,8 +298,61 @@ func (s *PipelineStore) makeNode(uri string, desc string, now time.Time) (*store
 		cancelFunc: cancelFunc,
 		closer:     closer,
 		holder:     holder,
-		pipeline:   pipeline,
+		runner:     runner,
 	}, nil
+}
+
+func (s *PipelineStore) newHTTPDevice(
+	ctx context.Context,
+	closer *core.FanoutCloser,
+	dataHandler device.DataHandler,
+	localClock syscore.SystemClock,
+	remoteLastClock syscore.SystemClock,
+	baseURL string,
+) syssched.Task {
+	var resolver sysnet.Resolver
+
+	if strings.Contains(baseURL, ".local") {
+		mdnsResolver := &sysnet.PionMdnsResolver{}
+		closer.Add("pion-mdns-resolver", mdnsResolver)
+
+		resolver = mdnsResolver
+	}
+
+	makeHTTPClient := func(r sysnet.Resolver) *htcore.HTTPClient {
+		if r != nil {
+			return htcore.NewResolveClient(r)
+		}
+
+		return htcore.NewDefaultClient()
+	}
+
+	remoteCurrClock := piphttp.NewSystemClock(
+		ctx,
+		makeHTTPClient(resolver),
+		baseURL+"/system/time",
+		s.params.HTTP.FetchTimeout,
+	)
+
+	clockSynchronizer := syscore.NewSystemClockSynchronizer(
+		localClock, remoteLastClock, remoteCurrClock)
+
+	return device.NewPollDevice(
+		htcore.NewURLFetcher(
+			ctx,
+			makeHTTPClient(resolver),
+			baseURL+"/registration",
+			s.params.HTTP.FetchTimeout,
+		),
+		htcore.NewURLFetcher(
+			ctx,
+			makeHTTPClient(resolver),
+			baseURL+"/telemetry",
+			s.params.HTTP.FetchTimeout,
+		),
+		dataHandler,
+		clockSynchronizer,
+	)
 }
 
 type deviceType int
@@ -328,11 +383,11 @@ type storeNode struct {
 	cancelFunc context.CancelFunc
 	closer     *core.FanoutCloser
 	holder     *device.IDHolder
-	pipeline   *HTTPPipeline
+	runner     *syssched.AsyncTaskRunner
 }
 
 func (s *storeNode) start() {
-	s.pipeline.Start()
+	s.runner.Start()
 }
 
 func (s *storeNode) close() error {
