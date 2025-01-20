@@ -36,14 +36,14 @@ func (h *DeviceHandler) HandleAdd(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	id := r.URL.Query().Get("id")
-	if id == "" {
-		http.Error(w, "error: missed `id` query parameter", http.StatusBadRequest)
+	desc := r.URL.Query().Get("desc")
+	if desc == "" {
+		http.Error(w, "error: missed `desc` query parameter", http.StatusBadRequest)
 
 		return
 	}
 
-	if err := h.store.Add(uri, id); err != nil {
+	if err := h.store.Add(uri, desc); err != nil {
 		http.Error(w, fmt.Sprintf("error: failed to add device with uri=%v: %v", uri, err),
 			http.StatusBadRequest)
 
