@@ -137,7 +137,7 @@ func TestStoreStartCloseEmpty(t *testing.T) {
 	handler := newTestStoreDataHandler()
 
 	storeParams := StoreParams{}
-	storeParams.HTTP.FetchInterval = time.Millisecond * 500
+	storeParams.HTTP.FetchInterval = time.Millisecond * 100
 	storeParams.HTTP.FetchTimeout = time.Millisecond * 100
 
 	store := NewStore(
@@ -161,7 +161,7 @@ func TestStoreCloseNoStart(t *testing.T) {
 	handler := newTestStoreDataHandler()
 
 	storeParams := StoreParams{}
-	storeParams.HTTP.FetchInterval = time.Millisecond * 500
+	storeParams.HTTP.FetchInterval = time.Millisecond * 100
 	storeParams.HTTP.FetchTimeout = time.Millisecond * 100
 
 	store := NewStore(
@@ -183,7 +183,7 @@ func TestStoreGetDescEmpty(t *testing.T) {
 	handler := newTestStoreDataHandler()
 
 	storeParams := StoreParams{}
-	storeParams.HTTP.FetchInterval = time.Millisecond * 500
+	storeParams.HTTP.FetchInterval = time.Millisecond * 100
 	storeParams.HTTP.FetchTimeout = time.Millisecond * 100
 
 	store := NewStore(
@@ -208,7 +208,7 @@ func TestStoreRemoveNoAdd(t *testing.T) {
 	handler := newTestStoreDataHandler()
 
 	storeParams := StoreParams{}
-	storeParams.HTTP.FetchInterval = time.Millisecond * 500
+	storeParams.HTTP.FetchInterval = time.Millisecond * 100
 	storeParams.HTTP.FetchTimeout = time.Millisecond * 100
 
 	store := NewStore(
@@ -232,7 +232,7 @@ func TestStoreAddURIUnsupportedScheme(t *testing.T) {
 	handler := newTestStoreDataHandler()
 
 	storeParams := StoreParams{}
-	storeParams.HTTP.FetchInterval = time.Millisecond * 500
+	storeParams.HTTP.FetchInterval = time.Millisecond * 100
 	storeParams.HTTP.FetchTimeout = time.Millisecond * 100
 
 	store := NewStore(
@@ -256,12 +256,12 @@ func TestStoreAddRemoveResourceNoResponse(t *testing.T) {
 	handler := newTestStoreDataHandler()
 
 	storeParams := StoreParams{}
-	storeParams.HTTP.FetchInterval = time.Millisecond * 500
+	storeParams.HTTP.FetchInterval = time.Millisecond * 100
 	storeParams.HTTP.FetchTimeout = time.Millisecond * 100
 
 	ctx, cancelFunc := context.WithTimeoutCause(
 		context.Background(),
-		time.Second*2,
+		time.Millisecond*500,
 		status.StatusTimeout,
 	)
 	defer cancelFunc()
@@ -322,7 +322,7 @@ func TestStoreAddRemove(t *testing.T) {
 	handler := newTestStoreDataHandler()
 
 	storeParams := StoreParams{}
-	storeParams.HTTP.FetchInterval = time.Millisecond * 500
+	storeParams.HTTP.FetchInterval = time.Millisecond * 100
 	storeParams.HTTP.FetchTimeout = time.Millisecond * 100
 
 	store := NewStore(
@@ -370,7 +370,7 @@ func TestStoreRestore(t *testing.T) {
 		clock := &testStoreClock{}
 
 		storeParams := StoreParams{}
-		storeParams.HTTP.FetchInterval = time.Millisecond * 500
+		storeParams.HTTP.FetchInterval = time.Millisecond * 100
 		storeParams.HTTP.FetchTimeout = time.Millisecond * 100
 
 		return NewStore(
@@ -450,7 +450,7 @@ func TestStoreAddSameDevice(t *testing.T) {
 	handler := newTestStoreDataHandler()
 
 	storeParams := StoreParams{}
-	storeParams.HTTP.FetchInterval = time.Millisecond * 500
+	storeParams.HTTP.FetchInterval = time.Millisecond * 100
 	storeParams.HTTP.FetchTimeout = time.Millisecond * 100
 
 	store := NewStore(
@@ -475,7 +475,7 @@ func TestStoreNoopDB(t *testing.T) {
 	handler := newTestStoreDataHandler()
 
 	storeParams := StoreParams{}
-	storeParams.HTTP.FetchInterval = time.Millisecond * 500
+	storeParams.HTTP.FetchInterval = time.Millisecond * 100
 	storeParams.HTTP.FetchTimeout = time.Millisecond * 100
 
 	store := NewStore(
