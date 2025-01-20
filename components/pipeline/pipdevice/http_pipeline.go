@@ -16,21 +16,23 @@ import (
 
 // HTTPPipeline fetches device data over HTTP.
 type HTTPPipeline struct {
-	id            string
+	baseURL       string
+	desc          string
 	fetchInterval time.Duration
 	ctx           context.Context
 	task          syssched.Task
 	doneCh        chan struct{}
 	holder        *device.IDHolder
+	errorReporter device.ErrorReporter
 }
 
 // HTTPPipelineParams provides various configuration options for HTTPPipeline.
 type HTTPPipelineParams struct {
-	// ID - unique pipeline identifier, to distinguish one pipeline from another.
-	ID string
-
 	// BaseURL - device API base URL.
 	BaseURL string
+
+	// Desc is the human readable device description.
+	Desc string
 
 	// FetchInterval - how often to fetch data from the device.
 	FetchInterval time.Duration
@@ -52,6 +54,7 @@ func NewHTTPPipeline(
 	ctx context.Context,
 	closer *core.FanoutCloser,
 	dataHandler device.DataHandler,
+	errorReporter device.ErrorReporter,
 	localClock syscore.SystemClock,
 	remoteLastClock syscore.SystemClock,
 	params HTTPPipelineParams,
@@ -103,14 +106,15 @@ func NewHTTPPipeline(
 	)
 
 	pipeline := &HTTPPipeline{
-		id:            params.ID,
+		baseURL:       params.BaseURL,
+		desc:          params.Desc,
 		fetchInterval: params.FetchInterval,
 		ctx:           ctx,
 		task:          pollDevice,
 		doneCh:        make(chan struct{}),
 		holder:        holder,
+		errorReporter: errorReporter,
 	}
-	closer.Add(params.ID, pipeline)
 
 	return pipeline
 }
@@ -125,11 +129,6 @@ func (p *HTTPPipeline) Close() error {
 	<-p.doneCh
 
 	return nil
-}
-
-// GetID returns the unique identifier of the pipeline.
-func (p *HTTPPipeline) GetID() string {
-	return p.id
 }
 
 // GetDeviceID returns the unique identifier of the device.
@@ -147,7 +146,7 @@ func (p *HTTPPipeline) run() {
 		select {
 		case <-ticker.C:
 			if err := p.task.Run(); err != nil {
-				core.LogErr.Printf("%s: failed to handle device data: %v\n", p.id, err)
+				p.errorReporter.ReportError(p.baseURL, p.desc, err)
 			}
 
 		case <-p.ctx.Done():

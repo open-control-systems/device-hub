@@ -169,6 +169,7 @@ INFLUXDB_API_TOKEN="<api_token>" \
 INFLUXDB_BUCKET="<bucket>" \
 INFLUXDB_ORG="<org>" \
 DEVICE_HUB_LOG_PATH="/var/log/device-hub/app.log" \
+DEVICE_HUB_CACHE_DIR="/var/cache/device-hub" \
 docker compose up device-hub -d
 ```
 
