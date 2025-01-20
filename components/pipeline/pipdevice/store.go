@@ -185,6 +185,8 @@ func (s *Store) Add(uri string, desc string) error {
 
 	s.nodes[key] = node
 
+	core.LogInf.Printf("device-store: device added: uri=%s desc=%s\n", uri, desc)
+
 	node.start()
 
 	return nil
@@ -214,6 +216,8 @@ func (s *Store) Remove(uri string) error {
 	}
 
 	delete(s.nodes, key)
+
+	core.LogInf.Printf("device-store: device removed: uri=%s\n", uri)
 
 	return nil
 }
