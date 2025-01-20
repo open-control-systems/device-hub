@@ -228,7 +228,7 @@ func (s *PipelineStore) GetDesc() []PipelineStoreItem {
 		items = append(items, PipelineStoreItem{
 			URI:       node.uri,
 			Desc:      node.desc,
-			ID:        node.pipeline.GetDeviceID(),
+			ID:        node.holder.Get(),
 			CreatedAt: node.createdAt,
 		})
 	}
@@ -272,10 +272,12 @@ func (s *PipelineStore) makeNode(uri string, desc string, now time.Time) (*store
 	ctx, cancelFunc := context.WithCancel(s.ctx)
 	closer := &core.FanoutCloser{}
 
+	holder := device.NewIDHolder(s.dataHandler)
+
 	pipeline := NewHTTPPipeline(
 		ctx,
 		closer,
-		s.dataHandler,
+		holder,
 		s.errorReporter,
 		s.localClock,
 		s.remoteLastClock,
@@ -293,6 +295,7 @@ func (s *PipelineStore) makeNode(uri string, desc string, now time.Time) (*store
 		createdAt:  now.Format(time.RFC1123),
 		cancelFunc: cancelFunc,
 		closer:     closer,
+		holder:     holder,
 		pipeline:   pipeline,
 	}, nil
 }
@@ -324,6 +327,7 @@ type storeNode struct {
 	createdAt  string
 	cancelFunc context.CancelFunc
 	closer     *core.FanoutCloser
+	holder     *device.IDHolder
 	pipeline   *HTTPPipeline
 }
 

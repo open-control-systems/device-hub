@@ -22,7 +22,6 @@ type HTTPPipeline struct {
 	ctx           context.Context
 	task          syssched.Task
 	doneCh        chan struct{}
-	holder        *device.IDHolder
 	errorReporter device.ErrorReporter
 }
 
@@ -86,8 +85,6 @@ func NewHTTPPipeline(
 	clockSynchronizer := syscore.NewSystemClockSynchronizer(
 		localClock, remoteLastClock, remoteCurrClock)
 
-	holder := device.NewIDHolder(dataHandler)
-
 	pollDevice := device.NewPollDevice(
 		htcore.NewURLFetcher(
 			ctx,
@@ -101,7 +98,7 @@ func NewHTTPPipeline(
 			params.BaseURL+"/telemetry",
 			params.FetchTimeout,
 		),
-		holder,
+		dataHandler,
 		clockSynchronizer,
 	)
 
@@ -112,7 +109,6 @@ func NewHTTPPipeline(
 		ctx:           ctx,
 		task:          pollDevice,
 		doneCh:        make(chan struct{}),
-		holder:        holder,
 		errorReporter: errorReporter,
 	}
 
@@ -129,11 +125,6 @@ func (p *HTTPPipeline) Close() error {
 	<-p.doneCh
 
 	return nil
-}
-
-// GetDeviceID returns the unique identifier of the device.
-func (p *HTTPPipeline) GetDeviceID() string {
-	return p.holder.Get()
 }
 
 func (p *HTTPPipeline) run() {
