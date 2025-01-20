@@ -22,8 +22,8 @@ import (
 	"github.com/open-control-systems/device-hub/components/system/syssched"
 )
 
-// PipelineStoreParams represents various configuration options for device pipelines.
-type PipelineStoreParams struct {
+// StoreParams represents various configuration options for a device.
+type StoreParams struct {
 	HTTP struct {
 		// FetchInterval - how often to fetch data from the device.
 		FetchInterval time.Duration
@@ -33,28 +33,28 @@ type PipelineStoreParams struct {
 	}
 }
 
-// PipelineStore allows to add/remove device pipelines.
-type PipelineStore struct {
+// Store allows to add/remove device.
+type Store struct {
 	ctx             context.Context
 	localClock      syscore.SystemClock
 	remoteLastClock syscore.SystemClock
 	dataHandler     device.DataHandler
-	params          PipelineStoreParams
+	params          StoreParams
 
 	mu    sync.Mutex
 	db    stcore.DB
 	nodes map[string]*storeNode
 }
 
-// PipelineStoreItem is a description of a single device.
-type PipelineStoreItem struct {
+// StoreItem is a description of a single device.
+type StoreItem struct {
 	URI       string `json:"uri"`
 	Desc      string `json:"desc"`
 	ID        string `json:"id"`
 	CreatedAt string `json:"created_at"`
 }
 
-// NewPipelineStore is a PipelineStore initialization.
+// NewStore is an initialization of Store.
 //
 // Parameters:
 //   - ctx - parent context.
@@ -63,16 +63,16 @@ type PipelineStoreItem struct {
 //   - remoteLastClock to get the last persisted UNIX time.
 //   - dataHandler to handle device data.
 //   - db to persist device registration life-cycle.
-//   - params - various configuration options for device pipelines.
-func NewPipelineStore(
+//   - params - various configuration options for a device.
+func NewStore(
 	ctx context.Context,
 	localClock syscore.SystemClock,
 	remoteLastClock syscore.SystemClock,
 	dataHandler device.DataHandler,
 	db stcore.DB,
-	params PipelineStoreParams,
-) *PipelineStore {
-	s := &PipelineStore{
+	params StoreParams,
+) *Store {
+	s := &Store{
 		ctx:             ctx,
 		localClock:      localClock,
 		remoteLastClock: remoteLastClock,
@@ -83,14 +83,14 @@ func NewPipelineStore(
 	}
 
 	if err := s.restoreNodes(); err != nil {
-		core.LogErr.Printf("device-pipeline-store: failed to restore nodes: %v\n", err)
+		core.LogErr.Printf("device-store: failed to restore nodes: %v\n", err)
 	}
 
 	return s
 }
 
 // Start starts data processing for cached devices.
-func (s *PipelineStore) Start() {
+func (s *Store) Start() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -100,13 +100,13 @@ func (s *PipelineStore) Start() {
 }
 
 // Close stops data processing for added devices.
-func (s *PipelineStore) Close() error {
+func (s *Store) Close() error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	for _, node := range s.nodes {
 		if err := node.close(); err != nil {
-			core.LogErr.Printf("pipeline-store: failed to close device: uri=%s err=%v\n",
+			core.LogErr.Printf("device-store: failed to close device: uri=%s err=%v\n",
 				node.uri, err)
 		}
 	}
@@ -132,7 +132,7 @@ func (s *PipelineStore) Close() error {
 // Desc examples:
 //   - room-plant-zamioculcas
 //   - living-room-light-bulb
-func (s *PipelineStore) Add(uri string, desc string) error {
+func (s *Store) Add(uri string, desc string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -160,7 +160,7 @@ func (s *PipelineStore) Add(uri string, desc string) error {
 			return fmt.Errorf("failed to save device info: collision")
 		}
 
-		panic(fmt.Sprintf("device-pipeline-store: failed to add device: invalid state:"+
+		panic(fmt.Sprintf("device-store: failed to add device: invalid state:"+
 			" uri=%s desc=%s", uri, desc))
 	}
 
@@ -194,7 +194,7 @@ func (s *PipelineStore) Add(uri string, desc string) error {
 //
 // Parameters:
 //   - uri - unique device identifier.
-func (s *PipelineStore) Remove(uri string) error {
+func (s *Store) Remove(uri string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -210,7 +210,7 @@ func (s *PipelineStore) Remove(uri string) error {
 	}
 
 	if err := node.close(); err != nil {
-		return fmt.Errorf("failed to stop HTTP pipeline: uri=%s err=%v", uri, err)
+		return fmt.Errorf("failed to stop device: uri=%s err=%v", uri, err)
 	}
 
 	delete(s.nodes, key)
@@ -219,14 +219,14 @@ func (s *PipelineStore) Remove(uri string) error {
 }
 
 // GetDesc returns descriptions for registered devices.
-func (s *PipelineStore) GetDesc() []PipelineStoreItem {
+func (s *Store) GetDesc() []StoreItem {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	var items []PipelineStoreItem
+	var items []StoreItem
 
 	for _, node := range s.nodes {
-		items = append(items, PipelineStoreItem{
+		items = append(items, StoreItem{
 			URI:       node.uri,
 			Desc:      node.desc,
 			ID:        node.holder.Get(),
@@ -237,7 +237,7 @@ func (s *PipelineStore) GetDesc() []PipelineStoreItem {
 	return items
 }
 
-func (s *PipelineStore) restoreNodes() error {
+func (s *Store) restoreNodes() error {
 	return s.db.ForEach(func(key string, blob stcore.Blob) error {
 		var item storageItem
 		if err := json.Unmarshal(blob.Data, &item); err != nil {
@@ -246,20 +246,20 @@ func (s *PipelineStore) restoreNodes() error {
 
 		node, err := s.makeNode(item.URI, item.Desc, time.Unix(item.Timestamp, 0))
 		if err != nil {
-			panic(fmt.Sprintf("device-pipeline-store: failed to restore device:"+
+			panic(fmt.Sprintf("device-store: failed to restore device:"+
 				"uri=%s desc=%s err=%v", item.URI, item.Desc, err))
 		}
 
 		s.nodes[key] = node
 
-		core.LogInf.Printf("device-pipeline-store: device restored: uri=%s desc=%s\n",
+		core.LogInf.Printf("device-store: device restored: uri=%s desc=%s\n",
 			item.URI, item.Desc)
 
 		return nil
 	})
 }
 
-func (s *PipelineStore) makeNode(uri string, desc string, now time.Time) (*storeNode, error) {
+func (s *Store) makeNode(uri string, desc string, now time.Time) (*storeNode, error) {
 	u, err := url.Parse(uri)
 	if err != nil {
 		return nil, err
@@ -302,7 +302,7 @@ func (s *PipelineStore) makeNode(uri string, desc string, now time.Time) (*store
 	}, nil
 }
 
-func (s *PipelineStore) newHTTPDevice(
+func (s *Store) newHTTPDevice(
 	ctx context.Context,
 	closer *core.FanoutCloser,
 	dataHandler device.DataHandler,
