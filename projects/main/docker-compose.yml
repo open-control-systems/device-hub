@@ -32,8 +32,8 @@ services:
       - DEVICE_HUB_LOG_PATH=${DEVICE_HUB_LOG_PATH}
       - DEVICE_HUB_CACHE_DIR=${DEVICE_HUB_CACHE_DIR}
     volumes:
-      - /var/log:/var/log
-      - /var/cache/device-hub:/var/cache/device-hub
+      - ${DEVICE_HUB_LOG_PATH}:${DEVICE_HUB_LOG_PATH}
+      - ${DEVICE_HUB_CACHE_DIR}:${DEVICE_HUB_CACHE_DIR}
     depends_on:
       - influxdb
 
