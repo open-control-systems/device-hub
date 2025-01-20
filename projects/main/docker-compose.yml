@@ -25,7 +25,7 @@ services:
     network_mode: host
     container_name: device-hub
     environment:
-      - INFLUXDB_URL=http://localhost:8086
+      - INFLUXDB_URL=${INFLUXDB_URL}
       - INFLUXDB_ORG=${INFLUXDB_ORG}
       - INFLUXDB_BUCKET=${INFLUXDB_BUCKET}
       - INFLUXDB_API_TOKEN=${INFLUXDB_API_TOKEN}
