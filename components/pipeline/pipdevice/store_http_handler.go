@@ -8,21 +8,21 @@ import (
 	"github.com/open-control-systems/device-hub/components/http/htcore"
 )
 
-// DeviceHandler allows to add/remove devices over HTTP API.
-type DeviceHandler struct {
-	store *PipelineStore
+// StoreHTTPHandler allows to add/remove devices over HTTP API.
+type StoreHTTPHandler struct {
+	store *Store
 }
 
-// NewDeviceHandler is an initialization of DeviceHandler.
+// NewStoreHTTPHandler is an initialization of StoreHTTPHandler.
 //
 // Parameters:
 //   - store to add/remove devices.
-func NewDeviceHandler(store *PipelineStore) *DeviceHandler {
-	return &DeviceHandler{store: store}
+func NewStoreHTTPHandler(store *Store) *StoreHTTPHandler {
+	return &StoreHTTPHandler{store: store}
 }
 
 // HandleAdd adds the device over HTTP API.
-func (h *DeviceHandler) HandleAdd(w http.ResponseWriter, r *http.Request) {
+func (h *StoreHTTPHandler) HandleAdd(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "error: unsupported method", http.StatusMethodNotAllowed)
 
@@ -54,7 +54,7 @@ func (h *DeviceHandler) HandleAdd(w http.ResponseWriter, r *http.Request) {
 }
 
 // HandleRemove removes the device over HTTP API.
-func (h *DeviceHandler) HandleRemove(w http.ResponseWriter, r *http.Request) {
+func (h *StoreHTTPHandler) HandleRemove(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "error: unsupported method", http.StatusMethodNotAllowed)
 
@@ -79,7 +79,7 @@ func (h *DeviceHandler) HandleRemove(w http.ResponseWriter, r *http.Request) {
 }
 
 // HandleList returns the description of all added devices.
-func (h *DeviceHandler) HandleList(w http.ResponseWriter, r *http.Request) {
+func (h *StoreHTTPHandler) HandleList(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "error: unsupported method", http.StatusMethodNotAllowed)
 

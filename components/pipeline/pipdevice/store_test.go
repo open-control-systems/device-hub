@@ -15,17 +15,17 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-type testPipelineStoreDB struct {
+type testStoreDB struct {
 	data map[string]stcore.Blob
 }
 
-func newTestPipelineStoreDB() *testPipelineStoreDB {
-	return &testPipelineStoreDB{
+func newTestStoreDB() *testStoreDB {
+	return &testStoreDB{
 		data: make(map[string]stcore.Blob),
 	}
 }
 
-func (d *testPipelineStoreDB) Read(key string) (stcore.Blob, error) {
+func (d *testStoreDB) Read(key string) (stcore.Blob, error) {
 	blob, ok := d.data[key]
 	if !ok {
 		return stcore.Blob{}, status.StatusNoData
@@ -34,7 +34,7 @@ func (d *testPipelineStoreDB) Read(key string) (stcore.Blob, error) {
 	return blob, nil
 }
 
-func (d *testPipelineStoreDB) Write(key string, blob stcore.Blob) error {
+func (d *testStoreDB) Write(key string, blob stcore.Blob) error {
 	b := stcore.Blob{}
 
 	b.Data = make([]byte, len(blob.Data))
@@ -45,13 +45,13 @@ func (d *testPipelineStoreDB) Write(key string, blob stcore.Blob) error {
 	return nil
 }
 
-func (d *testPipelineStoreDB) Remove(key string) error {
+func (d *testStoreDB) Remove(key string) error {
 	delete(d.data, key)
 
 	return nil
 }
 
-func (d *testPipelineStoreDB) ForEach(fn func(key string, b stcore.Blob) error) error {
+func (d *testStoreDB) ForEach(fn func(key string, b stcore.Blob) error) error {
 	for k, v := range d.data {
 		if err := fn(k, v); err != nil {
 			return err
@@ -61,27 +61,27 @@ func (d *testPipelineStoreDB) ForEach(fn func(key string, b stcore.Blob) error) 
 	return nil
 }
 
-func (d *testPipelineStoreDB) count() int {
+func (d *testStoreDB) count() int {
 	return len(d.data)
 }
 
-func (*testPipelineStoreDB) Close() error {
+func (*testStoreDB) Close() error {
 	return nil
 }
 
-type testPipelineStoreDataHandler struct {
+type testStoreDataHandler struct {
 	telemetry    chan device.JSON
 	registration chan device.JSON
 }
 
-func newTestPipelineStoreDataHandler() *testPipelineStoreDataHandler {
-	return &testPipelineStoreDataHandler{
+func newTestStoreDataHandler() *testStoreDataHandler {
+	return &testStoreDataHandler{
 		telemetry:    make(chan device.JSON),
 		registration: make(chan device.JSON),
 	}
 }
 
-func (h *testPipelineStoreDataHandler) HandleTelemetry(_ string, js device.JSON) error {
+func (h *testStoreDataHandler) HandleTelemetry(_ string, js device.JSON) error {
 	select {
 	case h.telemetry <- maps.Clone(js):
 	default:
@@ -90,7 +90,7 @@ func (h *testPipelineStoreDataHandler) HandleTelemetry(_ string, js device.JSON)
 	return nil
 }
 
-func (h *testPipelineStoreDataHandler) HandleRegistration(_ string, js device.JSON) error {
+func (h *testStoreDataHandler) HandleRegistration(_ string, js device.JSON) error {
 	select {
 	case h.registration <- maps.Clone(js):
 	default:
@@ -99,31 +99,31 @@ func (h *testPipelineStoreDataHandler) HandleRegistration(_ string, js device.JS
 	return nil
 }
 
-type testPipelineStoreClock struct {
+type testStoreClock struct {
 	timestamp int64
 }
 
-func (c *testPipelineStoreClock) SetTimestamp(timestamp int64) error {
+func (c *testStoreClock) SetTimestamp(timestamp int64) error {
 	c.timestamp = timestamp
 
 	return nil
 }
 
-func (c *testPipelineStoreClock) GetTimestamp() (int64, error) {
+func (c *testStoreClock) GetTimestamp() (int64, error) {
 	return c.timestamp, nil
 }
 
-type testPipelineStoreHTTPDataHandler struct {
+type testStoreHTTPDataHandler struct {
 	js device.JSON
 }
 
-func newTestPipelineStoreHTTPDataHandler(data device.JSON) *testPipelineStoreHTTPDataHandler {
-	return &testPipelineStoreHTTPDataHandler{
+func newTestStoreHTTPDataHandler(data device.JSON) *testStoreHTTPDataHandler {
+	return &testStoreHTTPDataHandler{
 		js: maps.Clone(data),
 	}
 }
 
-func (h *testPipelineStoreHTTPDataHandler) ServeHTTP(w http.ResponseWriter, _ *http.Request) {
+func (h *testStoreHTTPDataHandler) ServeHTTP(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	if err := json.NewEncoder(w).Encode(h.js); err != nil {
@@ -131,16 +131,16 @@ func (h *testPipelineStoreHTTPDataHandler) ServeHTTP(w http.ResponseWriter, _ *h
 	}
 }
 
-func TestPipelineStoreStartCloseEmpty(t *testing.T) {
-	db := newTestPipelineStoreDB()
-	clock := &testPipelineStoreClock{}
-	handler := newTestPipelineStoreDataHandler()
+func TestStoreStartCloseEmpty(t *testing.T) {
+	db := newTestStoreDB()
+	clock := &testStoreClock{}
+	handler := newTestStoreDataHandler()
 
-	storeParams := PipelineStoreParams{}
+	storeParams := StoreParams{}
 	storeParams.HTTP.FetchInterval = time.Millisecond * 500
 	storeParams.HTTP.FetchTimeout = time.Millisecond * 100
 
-	store := NewPipelineStore(
+	store := NewStore(
 		context.Background(),
 		clock,
 		clock,
@@ -155,16 +155,16 @@ func TestPipelineStoreStartCloseEmpty(t *testing.T) {
 	store.Start()
 }
 
-func TestPipelineStoreCloseNoStart(t *testing.T) {
-	db := newTestPipelineStoreDB()
-	clock := &testPipelineStoreClock{}
-	handler := newTestPipelineStoreDataHandler()
+func TestStoreCloseNoStart(t *testing.T) {
+	db := newTestStoreDB()
+	clock := &testStoreClock{}
+	handler := newTestStoreDataHandler()
 
-	storeParams := PipelineStoreParams{}
+	storeParams := StoreParams{}
 	storeParams.HTTP.FetchInterval = time.Millisecond * 500
 	storeParams.HTTP.FetchTimeout = time.Millisecond * 100
 
-	store := NewPipelineStore(
+	store := NewStore(
 		context.Background(),
 		clock,
 		clock,
@@ -177,16 +177,16 @@ func TestPipelineStoreCloseNoStart(t *testing.T) {
 	}()
 }
 
-func TestPipelineStoreGetDescEmpty(t *testing.T) {
-	db := newTestPipelineStoreDB()
-	clock := &testPipelineStoreClock{}
-	handler := newTestPipelineStoreDataHandler()
+func TestStoreGetDescEmpty(t *testing.T) {
+	db := newTestStoreDB()
+	clock := &testStoreClock{}
+	handler := newTestStoreDataHandler()
 
-	storeParams := PipelineStoreParams{}
+	storeParams := StoreParams{}
 	storeParams.HTTP.FetchInterval = time.Millisecond * 500
 	storeParams.HTTP.FetchTimeout = time.Millisecond * 100
 
-	store := NewPipelineStore(
+	store := NewStore(
 		context.Background(),
 		clock,
 		clock,
@@ -202,16 +202,16 @@ func TestPipelineStoreGetDescEmpty(t *testing.T) {
 	require.Empty(t, descs)
 }
 
-func TestPipelineStoreRemoveNoAdd(t *testing.T) {
-	db := newTestPipelineStoreDB()
-	clock := &testPipelineStoreClock{}
-	handler := newTestPipelineStoreDataHandler()
+func TestStoreRemoveNoAdd(t *testing.T) {
+	db := newTestStoreDB()
+	clock := &testStoreClock{}
+	handler := newTestStoreDataHandler()
 
-	storeParams := PipelineStoreParams{}
+	storeParams := StoreParams{}
 	storeParams.HTTP.FetchInterval = time.Millisecond * 500
 	storeParams.HTTP.FetchTimeout = time.Millisecond * 100
 
-	store := NewPipelineStore(
+	store := NewStore(
 		context.Background(),
 		clock,
 		clock,
@@ -226,16 +226,16 @@ func TestPipelineStoreRemoveNoAdd(t *testing.T) {
 	require.Equal(t, status.StatusNoData, store.Remove("foo-bar-baz"))
 }
 
-func TestPipelineStoreAddURIUnsupportedScheme(t *testing.T) {
-	db := newTestPipelineStoreDB()
-	clock := &testPipelineStoreClock{}
-	handler := newTestPipelineStoreDataHandler()
+func TestStoreAddURIUnsupportedScheme(t *testing.T) {
+	db := newTestStoreDB()
+	clock := &testStoreClock{}
+	handler := newTestStoreDataHandler()
 
-	storeParams := PipelineStoreParams{}
+	storeParams := StoreParams{}
 	storeParams.HTTP.FetchInterval = time.Millisecond * 500
 	storeParams.HTTP.FetchTimeout = time.Millisecond * 100
 
-	store := NewPipelineStore(
+	store := NewStore(
 		context.Background(),
 		clock,
 		clock,
@@ -250,12 +250,12 @@ func TestPipelineStoreAddURIUnsupportedScheme(t *testing.T) {
 	require.Equal(t, status.StatusNotSupported, store.Add("foo-bar-baz", "foo-bar-baz"))
 }
 
-func TestPipelineStoreAddRemoveResourceNoResponse(t *testing.T) {
-	db := newTestPipelineStoreDB()
-	clock := &testPipelineStoreClock{}
-	handler := newTestPipelineStoreDataHandler()
+func TestStoreAddRemoveResourceNoResponse(t *testing.T) {
+	db := newTestStoreDB()
+	clock := &testStoreClock{}
+	handler := newTestStoreDataHandler()
 
-	storeParams := PipelineStoreParams{}
+	storeParams := StoreParams{}
 	storeParams.HTTP.FetchInterval = time.Millisecond * 500
 	storeParams.HTTP.FetchTimeout = time.Millisecond * 100
 
@@ -266,7 +266,7 @@ func TestPipelineStoreAddRemoveResourceNoResponse(t *testing.T) {
 	)
 	defer cancelFunc()
 
-	store := NewPipelineStore(
+	store := NewStore(
 		ctx,
 		clock,
 		clock,
@@ -316,16 +316,16 @@ func TestPipelineStoreAddRemoveResourceNoResponse(t *testing.T) {
 	require.Equal(t, 0, db.count())
 }
 
-func TestPipelineStoreAddRemove(t *testing.T) {
-	db := newTestPipelineStoreDB()
-	clock := &testPipelineStoreClock{}
-	handler := newTestPipelineStoreDataHandler()
+func TestStoreAddRemove(t *testing.T) {
+	db := newTestStoreDB()
+	clock := &testStoreClock{}
+	handler := newTestStoreDataHandler()
 
-	storeParams := PipelineStoreParams{}
+	storeParams := StoreParams{}
 	storeParams.HTTP.FetchInterval = time.Millisecond * 500
 	storeParams.HTTP.FetchTimeout = time.Millisecond * 100
 
-	store := NewPipelineStore(
+	store := NewStore(
 		context.Background(),
 		clock,
 		clock,
@@ -347,8 +347,8 @@ func TestPipelineStoreAddRemove(t *testing.T) {
 	registrationData["timestamp"] = float64(123)
 	registrationData["device_id"] = deviceID
 
-	telemetryHandler := newTestPipelineStoreHTTPDataHandler(telemetryData)
-	registrationHandler := newTestPipelineStoreHTTPDataHandler(registrationData)
+	telemetryHandler := newTestStoreHTTPDataHandler(telemetryData)
+	registrationHandler := newTestStoreHTTPDataHandler(registrationData)
 
 	mux := http.NewServeMux()
 	mux.Handle("/telemetry", telemetryHandler)
@@ -363,17 +363,17 @@ func TestPipelineStoreAddRemove(t *testing.T) {
 	require.True(t, maps.Equal(registrationData, <-handler.registration))
 }
 
-func TestPipelineStoreRestore(t *testing.T) {
-	db := newTestPipelineStoreDB()
+func TestStoreRestore(t *testing.T) {
+	db := newTestStoreDB()
 
-	makeStore := func(d stcore.DB, h device.DataHandler) *PipelineStore {
-		clock := &testPipelineStoreClock{}
+	makeStore := func(d stcore.DB, h device.DataHandler) *Store {
+		clock := &testStoreClock{}
 
-		storeParams := PipelineStoreParams{}
+		storeParams := StoreParams{}
 		storeParams.HTTP.FetchInterval = time.Millisecond * 500
 		storeParams.HTTP.FetchTimeout = time.Millisecond * 100
 
-		return NewPipelineStore(
+		return NewStore(
 			context.Background(),
 			clock,
 			clock,
@@ -383,7 +383,7 @@ func TestPipelineStoreRestore(t *testing.T) {
 		)
 	}
 
-	handler1 := newTestPipelineStoreDataHandler()
+	handler1 := newTestStoreDataHandler()
 	store1 := makeStore(db, handler1)
 
 	require.Empty(t, store1.GetDesc())
@@ -398,8 +398,8 @@ func TestPipelineStoreRestore(t *testing.T) {
 	registrationData["timestamp"] = float64(123)
 	registrationData["device_id"] = deviceID
 
-	telemetryHandler := newTestPipelineStoreHTTPDataHandler(telemetryData)
-	registrationHandler := newTestPipelineStoreHTTPDataHandler(registrationData)
+	telemetryHandler := newTestStoreHTTPDataHandler(telemetryData)
+	registrationHandler := newTestStoreHTTPDataHandler(registrationData)
 
 	mux := http.NewServeMux()
 	mux.Handle("/telemetry", telemetryHandler)
@@ -418,7 +418,7 @@ func TestPipelineStoreRestore(t *testing.T) {
 
 	require.Nil(t, store1.Close())
 
-	handler2 := newTestPipelineStoreDataHandler()
+	handler2 := newTestStoreDataHandler()
 	store2 := makeStore(db, handler2)
 
 	descs := store2.GetDesc()
@@ -436,7 +436,7 @@ func TestPipelineStoreRestore(t *testing.T) {
 
 	require.Nil(t, store2.Remove(deviceURI))
 
-	handler3 := newTestPipelineStoreDataHandler()
+	handler3 := newTestStoreDataHandler()
 	store3 := makeStore(db, handler3)
 
 	require.Nil(t, store3.Add(deviceURI, deviceDesc))
@@ -444,16 +444,16 @@ func TestPipelineStoreRestore(t *testing.T) {
 	require.True(t, maps.Equal(registrationData, <-handler3.registration))
 }
 
-func TestPipelineStoreAddSameDevice(t *testing.T) {
-	db := newTestPipelineStoreDB()
-	clock := &testPipelineStoreClock{}
-	handler := newTestPipelineStoreDataHandler()
+func TestStoreAddSameDevice(t *testing.T) {
+	db := newTestStoreDB()
+	clock := &testStoreClock{}
+	handler := newTestStoreDataHandler()
 
-	storeParams := PipelineStoreParams{}
+	storeParams := StoreParams{}
 	storeParams.HTTP.FetchInterval = time.Millisecond * 500
 	storeParams.HTTP.FetchTimeout = time.Millisecond * 100
 
-	store := NewPipelineStore(
+	store := NewStore(
 		context.Background(),
 		clock,
 		clock,
@@ -469,16 +469,16 @@ func TestPipelineStoreAddSameDevice(t *testing.T) {
 	require.NotNil(t, store.Add("http://foo.bar.com", "foo-bar-com"))
 }
 
-func TestPipelineStoreNoopDB(t *testing.T) {
+func TestStoreNoopDB(t *testing.T) {
 	db := &stcore.NoopDB{}
-	clock := &testPipelineStoreClock{}
-	handler := newTestPipelineStoreDataHandler()
+	clock := &testStoreClock{}
+	handler := newTestStoreDataHandler()
 
-	storeParams := PipelineStoreParams{}
+	storeParams := StoreParams{}
 	storeParams.HTTP.FetchInterval = time.Millisecond * 500
 	storeParams.HTTP.FetchTimeout = time.Millisecond * 100
 
-	store := NewPipelineStore(
+	store := NewStore(
 		context.Background(),
 		clock,
 		clock,

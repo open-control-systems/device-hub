@@ -77,11 +77,11 @@ func (p *appPipeline) start(ec *envContext) error {
 		db = &stcore.NoopDB{}
 	}
 
-	deviceStoreParams := pipdevice.PipelineStoreParams{}
+	deviceStoreParams := pipdevice.StoreParams{}
 	deviceStoreParams.HTTP.FetchInterval = time.Second * 5
 	deviceStoreParams.HTTP.FetchTimeout = time.Second * 5
 
-	deviceStore := pipdevice.NewPipelineStore(
+	deviceStore := pipdevice.NewStore(
 		appContext,
 		p.systemClock,
 		storagePipeline.GetSystemClock(),
@@ -95,7 +95,7 @@ func (p *appPipeline) start(ec *envContext) error {
 		serverPipeline.GetServeMux(),
 		// Time valid since 2024/12/03.
 		piphttp.NewSystemTimeHandler(p.systemClock, time.Unix(1733215816, 0)),
-		pipdevice.NewDeviceHandler(deviceStore),
+		pipdevice.NewStoreHTTPHandler(deviceStore),
 	)
 
 	deviceStore.Start()
@@ -110,18 +110,18 @@ func (p *appPipeline) start(ec *envContext) error {
 func registerHTTPRoutes(
 	mux *http.ServeMux,
 	timeHandler *piphttp.SystemTimeHandler,
-	deviceHandler *pipdevice.DeviceHandler,
+	storeHTTPHandler *pipdevice.StoreHTTPHandler,
 ) {
 	mux.Handle("/api/v1/system/time", timeHandler)
 
 	mux.HandleFunc("/api/v1/device/add", func(w http.ResponseWriter, r *http.Request) {
-		deviceHandler.HandleAdd(w, r)
+		storeHTTPHandler.HandleAdd(w, r)
 	})
 	mux.HandleFunc("/api/v1/device/remove", func(w http.ResponseWriter, r *http.Request) {
-		deviceHandler.HandleRemove(w, r)
+		storeHTTPHandler.HandleRemove(w, r)
 	})
 	mux.HandleFunc("/api/v1/device/list", func(w http.ResponseWriter, r *http.Request) {
-		deviceHandler.HandleList(w, r)
+		storeHTTPHandler.HandleList(w, r)
 	})
 }
 
