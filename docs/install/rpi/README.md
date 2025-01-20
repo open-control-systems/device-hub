@@ -200,13 +200,13 @@ Ensure that the device implements the following HTTP endpoints:
 # Receive telemetry data.
 #
 # Required fields
-#  - timestamp - valid UNIX timestamp
+#  - timestamp - valid UNIX timestamp.
 curl http://bonsai-growlab.local/api/v1/telemetry
 
 # Receive registration data.
 #
 # Required fields
-#  - timestamp - valid UNIX timestamp
+#  - timestamp - valid UNIX timestamp.
 #  - device_id - unique device identifier, to distinguish one device from another.
 curl http://bonsai-growlab.local/api/v1/registration
 ```
