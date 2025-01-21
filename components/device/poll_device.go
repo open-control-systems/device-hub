@@ -142,7 +142,9 @@ func (d *PollDevice) parseDeviceID(js JSON) error {
 			"poll-device: failed to fetch registration: invalid type for device_id")
 	}
 
-	if d.deviceID != deviceID {
+	if d.deviceID == "" {
+		core.LogInf.Printf("poll-device: device ID received: %s\n", deviceID)
+	} else if d.deviceID != deviceID {
 		core.LogInf.Printf("poll-device: device ID changed: cur=%s new=%s\n",
 			d.deviceID, deviceID)
 	}
