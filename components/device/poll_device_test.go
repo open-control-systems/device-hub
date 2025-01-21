@@ -454,9 +454,8 @@ func TestPollDeviceRunDeviceIdChanged(t *testing.T) {
 	registrationFetcher.data = registrationData
 
 	err := device.Run()
-	require.NotNil(t, err)
-	require.True(t, errors.Is(err, status.StatusError))
-	require.Equal(t, deviceID, dataHandler.registration.DeviceID)
+	require.Nil(t, err)
+	require.Equal(t, changedDeviceID, dataHandler.registration.DeviceID)
 }
 
 func TestPollDeviceSynchronizeTimeTelemetryAndRegistration(t *testing.T) {
