@@ -21,6 +21,7 @@ import (
 	"github.com/open-control-systems/device-hub/components/storage/stcore"
 	"github.com/open-control-systems/device-hub/components/storage/stinfluxdb"
 	"github.com/open-control-systems/device-hub/components/system/syscore"
+	"github.com/open-control-systems/device-hub/components/system/sysnet"
 )
 
 type envContext struct {
@@ -109,6 +110,7 @@ func (p *appPipeline) start(ec *envContext) error {
 		storagePipeline.GetSystemClock(),
 		storagePipeline.GetDataHandler(),
 		db,
+		sysnet.NewResolveStore(),
 		deviceStoreParams,
 	)
 	p.closer.Add("device-pipeline-store", deviceStore)
