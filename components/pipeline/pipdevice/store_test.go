@@ -12,6 +12,7 @@ import (
 	"github.com/open-control-systems/device-hub/components/device"
 	"github.com/open-control-systems/device-hub/components/status"
 	"github.com/open-control-systems/device-hub/components/storage/stcore"
+	"github.com/open-control-systems/device-hub/components/system/sysnet"
 	"github.com/stretchr/testify/require"
 )
 
@@ -146,6 +147,7 @@ func TestStoreStartCloseEmpty(t *testing.T) {
 		clock,
 		handler,
 		db,
+		sysnet.NewResolveStore(),
 		storeParams,
 	)
 	defer func() {
@@ -170,6 +172,7 @@ func TestStoreCloseNoStart(t *testing.T) {
 		clock,
 		handler,
 		db,
+		sysnet.NewResolveStore(),
 		storeParams,
 	)
 	defer func() {
@@ -192,6 +195,7 @@ func TestStoreGetDescEmpty(t *testing.T) {
 		clock,
 		handler,
 		db,
+		sysnet.NewResolveStore(),
 		storeParams,
 	)
 	defer func() {
@@ -217,6 +221,7 @@ func TestStoreRemoveNoAdd(t *testing.T) {
 		clock,
 		handler,
 		db,
+		sysnet.NewResolveStore(),
 		storeParams,
 	)
 	defer func() {
@@ -241,6 +246,7 @@ func TestStoreAddURIUnsupportedScheme(t *testing.T) {
 		clock,
 		handler,
 		db,
+		sysnet.NewResolveStore(),
 		storeParams,
 	)
 	defer func() {
@@ -272,6 +278,7 @@ func TestStoreAddRemoveResourceNoResponse(t *testing.T) {
 		clock,
 		handler,
 		db,
+		sysnet.NewResolveStore(),
 		storeParams,
 	)
 	defer func() {
@@ -331,6 +338,7 @@ func TestStoreAddRemove(t *testing.T) {
 		clock,
 		handler,
 		db,
+		sysnet.NewResolveStore(),
 		storeParams,
 	)
 	defer func() {
@@ -379,6 +387,7 @@ func TestStoreRestore(t *testing.T) {
 			clock,
 			h,
 			d,
+			sysnet.NewResolveStore(),
 			storeParams,
 		)
 	}
@@ -459,6 +468,7 @@ func TestStoreAddSameDevice(t *testing.T) {
 		clock,
 		handler,
 		db,
+		sysnet.NewResolveStore(),
 		storeParams,
 	)
 	defer func() {
@@ -484,6 +494,7 @@ func TestStoreNoopDB(t *testing.T) {
 		clock,
 		handler,
 		db,
+		sysnet.NewResolveStore(),
 		storeParams,
 	)
 	defer func() {

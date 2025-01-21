@@ -39,6 +39,7 @@ type Store struct {
 	localClock      syscore.SystemClock
 	remoteLastClock syscore.SystemClock
 	dataHandler     device.DataHandler
+	resolveStore    *sysnet.ResolveStore
 	params          StoreParams
 
 	mu    sync.Mutex
@@ -70,6 +71,7 @@ func NewStore(
 	remoteLastClock syscore.SystemClock,
 	dataHandler device.DataHandler,
 	db stcore.DB,
+	resolveStore *sysnet.ResolveStore,
 	params StoreParams,
 ) *Store {
 	s := &Store{
@@ -79,6 +81,7 @@ func NewStore(
 		dataHandler:     dataHandler,
 		params:          params,
 		db:              db,
+		resolveStore:    resolveStore,
 		nodes:           make(map[string]*storeNode),
 	}
 
@@ -288,6 +291,8 @@ func (s *Store) makeNode(uri string, desc string, now time.Time) (*storeNode, er
 			s.localClock,
 			s.remoteLastClock,
 			uri,
+			u.Host,
+			desc,
 		),
 		&logErrorReporter{uri: uri, desc: desc},
 		s.params.HTTP.FetchInterval,
@@ -313,27 +318,12 @@ func (s *Store) newHTTPDevice(
 	localClock syscore.SystemClock,
 	remoteLastClock syscore.SystemClock,
 	baseURL string,
+	host string,
+	desc string,
 ) syssched.Task {
-	var resolver sysnet.Resolver
-
-	if strings.Contains(baseURL, ".local") {
-		mdnsResolver := &sysnet.PionMdnsResolver{}
-		closer.Add("pion-mdns-resolver", mdnsResolver)
-
-		resolver = mdnsResolver
-	}
-
-	makeHTTPClient := func(r sysnet.Resolver) *htcore.HTTPClient {
-		if r != nil {
-			return htcore.NewResolveClient(r)
-		}
-
-		return htcore.NewDefaultClient()
-	}
-
 	remoteCurrClock := piphttp.NewSystemClock(
 		ctx,
-		makeHTTPClient(resolver),
+		s.makeHTTPClient(ctx, closer, baseURL, host, desc),
 		baseURL+"/system/time",
 		s.params.HTTP.FetchTimeout,
 	)
@@ -344,19 +334,53 @@ func (s *Store) newHTTPDevice(
 	return device.NewPollDevice(
 		htcore.NewURLFetcher(
 			ctx,
-			makeHTTPClient(resolver),
+			s.makeHTTPClient(ctx, closer, baseURL, host, desc),
 			baseURL+"/registration",
 			s.params.HTTP.FetchTimeout,
 		),
 		htcore.NewURLFetcher(
 			ctx,
-			makeHTTPClient(resolver),
+			s.makeHTTPClient(ctx, closer, baseURL, host, desc),
 			baseURL+"/telemetry",
 			s.params.HTTP.FetchTimeout,
 		),
 		dataHandler,
 		clockSynchronizer,
 	)
+}
+
+func (s *Store) makeHTTPClient(
+	ctx context.Context,
+	closer *core.FanoutCloser,
+	uri string,
+	host string,
+	desc string,
+) *htcore.HTTPClient {
+	if !strings.Contains(uri, ".local") {
+		return htcore.NewDefaultClient()
+	}
+
+	s.resolveStore.Add(host)
+
+	closer.Add("resolve-store-"+desc, core.FuncCloser(func() error {
+		s.resolveStore.Remove(host)
+
+		return nil
+	}))
+
+	resolveTask := sysnet.NewPionMdnsTask(ctx, s.resolveStore, time.Second*5, host)
+	closer.Add("resolve-task-"+desc, resolveTask)
+
+	asyncTaskRunner := syssched.NewAsyncTaskRunner(
+		ctx,
+		resolveTask,
+		resolveTask,
+		time.Second*5)
+
+	asyncTaskRunner.Start()
+	closer.Add("resolve-task-runner-"+desc, asyncTaskRunner)
+
+	return htcore.NewResolveClient(s.resolveStore)
 }
 
 type deviceType int
