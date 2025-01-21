@@ -52,7 +52,9 @@ func (r *AsyncTaskRunner) run() {
 		select {
 		case <-ticker.C:
 			if err := r.task.Run(); err != nil {
-				r.reporter.ReportError(err)
+				if r.reporter != nil {
+					r.reporter.ReportError(err)
+				}
 			}
 
 		case <-r.ctx.Done():
