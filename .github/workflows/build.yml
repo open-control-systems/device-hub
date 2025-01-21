@@ -37,10 +37,20 @@ jobs:
           only-new-issues: true
           args: ./...
 
-      - name: Build application
+      - name: verify dependencies
         shell: bash
         run: |
           go mod download
+          go mod tidy
+
+          if [ -n "$(git status --porcelain .)" ]; then
+            echo "Please run 'go mod tidy' and commit the updated files."
+            exit 1
+          fi
+
+      - name: build application
+        shell: bash
+        run: |
           go build ./...
           go test ./... --race
 
