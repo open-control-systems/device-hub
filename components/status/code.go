@@ -9,6 +9,9 @@ var (
 	// StatusInvalidState indicates that an operation can't be performed due to invalid state.
 	StatusInvalidState = errors.New("invalid state")
 
+	// StatusInvalidArg indicates that an operation can't be performed due to invalid argument.
+	StatusInvalidArg = errors.New("invalid argument")
+
 	// StatusNotSupported indicates that an operation isn't supported.
 	StatusNotSupported = errors.New("not supported")
 
