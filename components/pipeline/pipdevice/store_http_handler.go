@@ -10,14 +10,14 @@ import (
 
 // StoreHTTPHandler allows to add/remove devices over HTTP API.
 type StoreHTTPHandler struct {
-	store *Store
+	store Store
 }
 
 // NewStoreHTTPHandler is an initialization of StoreHTTPHandler.
 //
 // Parameters:
 //   - store to add/remove devices.
-func NewStoreHTTPHandler(store *Store) *StoreHTTPHandler {
+func NewStoreHTTPHandler(store Store) *StoreHTTPHandler {
 	return &StoreHTTPHandler{store: store}
 }
 
