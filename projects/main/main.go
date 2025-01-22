@@ -21,6 +21,7 @@ import (
 	"github.com/open-control-systems/device-hub/components/storage/stcore"
 	"github.com/open-control-systems/device-hub/components/storage/stinfluxdb"
 	"github.com/open-control-systems/device-hub/components/system/syscore"
+	"github.com/open-control-systems/device-hub/components/system/sysmdns"
 	"github.com/open-control-systems/device-hub/components/system/sysnet"
 	"github.com/open-control-systems/device-hub/components/system/syssched"
 )
@@ -108,11 +109,11 @@ func (p *appPipeline) start(ec *envContext) error {
 		return errors.New("mDNS browse timeout can't be less than 1s")
 	}
 
-	mdnsBrowser, err := sysnet.NewZeroconfMdnsBrowser(
+	mdnsBrowser, err := sysmdns.NewZeroconfBrowser(
 		appContext,
 		resolveStore,
-		sysnet.ZeroconfMdnsBrowserParams{
-			Service: sysnet.MdnsServiceName(sysnet.MdnsServiceTypeHTTP, sysnet.MdnsProtoTCP),
+		sysmdns.ZeroconfBrowserParams{
+			Service: sysmdns.ServiceName(sysmdns.ServiceTypeHTTP, sysmdns.ProtoTCP),
 			Domain:  "local",
 			Timeout: mdnsBrowseTimeout,
 		},
