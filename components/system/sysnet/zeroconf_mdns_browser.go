@@ -86,8 +86,8 @@ func (*ZeroconfMdnsBrowser) Close() error {
 	return nil
 }
 
-// ReportError reports browsing errors to the log.
-func (b *ZeroconfMdnsBrowser) ReportError(err error) {
+// HandleError handles browsing errors.
+func (b *ZeroconfMdnsBrowser) HandleError(err error) {
 	core.LogErr.Printf("mdns-zeroconf-browser: browsing failed: service=%s domain=%s: %v\n",
 		b.params.Service, b.params.Domain, err)
 }
