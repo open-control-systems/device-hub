@@ -147,30 +147,30 @@ func (p *appPipeline) start(ec *envContext) error {
 		return errors.New("HTTP device fetch timeout can't be less than 1ms")
 	}
 
-	deviceStoreParams := pipdevice.StoreParams{}
-	deviceStoreParams.HTTP.FetchInterval = fetchInterval
-	deviceStoreParams.HTTP.FetchTimeout = fetchTimeout
+	cacheStoreParams := pipdevice.CacheStoreParams{}
+	cacheStoreParams.HTTP.FetchInterval = fetchInterval
+	cacheStoreParams.HTTP.FetchTimeout = fetchTimeout
 
-	deviceStore := pipdevice.NewStore(
+	cacheStore := pipdevice.NewCacheStore(
 		appContext,
 		p.systemClock,
 		storagePipeline.GetSystemClock(),
 		storagePipeline.GetDataHandler(),
 		db,
 		resolveStore,
-		deviceStoreParams,
+		cacheStoreParams,
 	)
-	p.closer.Add("device-pipeline-store", deviceStore)
+	p.closer.Add("device-cache-store", cacheStore)
 
 	registerHTTPRoutes(
 		serverPipeline.GetServeMux(),
 		// Time valid since 2024/12/03.
 		piphttp.NewSystemTimeHandler(p.systemClock, time.Unix(1733215816, 0)),
-		pipdevice.NewStoreHTTPHandler(deviceStore),
+		pipdevice.NewStoreHTTPHandler(cacheStore),
 	)
 
 	mdnsBrowserRunner.Start()
-	deviceStore.Start()
+	cacheStore.Start()
 	storagePipeline.Start()
 	serverPipeline.Start()
 

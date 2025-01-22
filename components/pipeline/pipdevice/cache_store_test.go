@@ -16,17 +16,17 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-type testStoreDB struct {
+type testCacheStoreDB struct {
 	data map[string]stcore.Blob
 }
 
-func newTestStoreDB() *testStoreDB {
-	return &testStoreDB{
+func newTestCacheStoreDB() *testCacheStoreDB {
+	return &testCacheStoreDB{
 		data: make(map[string]stcore.Blob),
 	}
 }
 
-func (d *testStoreDB) Read(key string) (stcore.Blob, error) {
+func (d *testCacheStoreDB) Read(key string) (stcore.Blob, error) {
 	blob, ok := d.data[key]
 	if !ok {
 		return stcore.Blob{}, status.StatusNoData
@@ -35,7 +35,7 @@ func (d *testStoreDB) Read(key string) (stcore.Blob, error) {
 	return blob, nil
 }
 
-func (d *testStoreDB) Write(key string, blob stcore.Blob) error {
+func (d *testCacheStoreDB) Write(key string, blob stcore.Blob) error {
 	b := stcore.Blob{}
 
 	b.Data = make([]byte, len(blob.Data))
@@ -46,13 +46,13 @@ func (d *testStoreDB) Write(key string, blob stcore.Blob) error {
 	return nil
 }
 
-func (d *testStoreDB) Remove(key string) error {
+func (d *testCacheStoreDB) Remove(key string) error {
 	delete(d.data, key)
 
 	return nil
 }
 
-func (d *testStoreDB) ForEach(fn func(key string, b stcore.Blob) error) error {
+func (d *testCacheStoreDB) ForEach(fn func(key string, b stcore.Blob) error) error {
 	for k, v := range d.data {
 		if err := fn(k, v); err != nil {
 			return err
@@ -62,27 +62,27 @@ func (d *testStoreDB) ForEach(fn func(key string, b stcore.Blob) error) error {
 	return nil
 }
 
-func (d *testStoreDB) count() int {
+func (d *testCacheStoreDB) count() int {
 	return len(d.data)
 }
 
-func (*testStoreDB) Close() error {
+func (*testCacheStoreDB) Close() error {
 	return nil
 }
 
-type testStoreDataHandler struct {
+type testCacheStoreDataHandler struct {
 	telemetry    chan device.JSON
 	registration chan device.JSON
 }
 
-func newTestStoreDataHandler() *testStoreDataHandler {
-	return &testStoreDataHandler{
+func newTestCacheStoreDataHandler() *testCacheStoreDataHandler {
+	return &testCacheStoreDataHandler{
 		telemetry:    make(chan device.JSON),
 		registration: make(chan device.JSON),
 	}
 }
 
-func (h *testStoreDataHandler) HandleTelemetry(_ string, js device.JSON) error {
+func (h *testCacheStoreDataHandler) HandleTelemetry(_ string, js device.JSON) error {
 	select {
 	case h.telemetry <- maps.Clone(js):
 	default:
@@ -91,7 +91,7 @@ func (h *testStoreDataHandler) HandleTelemetry(_ string, js device.JSON) error {
 	return nil
 }
 
-func (h *testStoreDataHandler) HandleRegistration(_ string, js device.JSON) error {
+func (h *testCacheStoreDataHandler) HandleRegistration(_ string, js device.JSON) error {
 	select {
 	case h.registration <- maps.Clone(js):
 	default:
@@ -100,31 +100,31 @@ func (h *testStoreDataHandler) HandleRegistration(_ string, js device.JSON) erro
 	return nil
 }
 
-type testStoreClock struct {
+type testCacheStoreClock struct {
 	timestamp int64
 }
 
-func (c *testStoreClock) SetTimestamp(timestamp int64) error {
+func (c *testCacheStoreClock) SetTimestamp(timestamp int64) error {
 	c.timestamp = timestamp
 
 	return nil
 }
 
-func (c *testStoreClock) GetTimestamp() (int64, error) {
+func (c *testCacheStoreClock) GetTimestamp() (int64, error) {
 	return c.timestamp, nil
 }
 
-type testStoreHTTPDataHandler struct {
+type testCacheStoreHTTPDataHandler struct {
 	js device.JSON
 }
 
-func newTestStoreHTTPDataHandler(data device.JSON) *testStoreHTTPDataHandler {
-	return &testStoreHTTPDataHandler{
+func newTestCacheStoreHTTPDataHandler(data device.JSON) *testCacheStoreHTTPDataHandler {
+	return &testCacheStoreHTTPDataHandler{
 		js: maps.Clone(data),
 	}
 }
 
-func (h *testStoreHTTPDataHandler) ServeHTTP(w http.ResponseWriter, _ *http.Request) {
+func (h *testCacheStoreHTTPDataHandler) ServeHTTP(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	if err := json.NewEncoder(w).Encode(h.js); err != nil {
@@ -132,16 +132,16 @@ func (h *testStoreHTTPDataHandler) ServeHTTP(w http.ResponseWriter, _ *http.Requ
 	}
 }
 
-func TestStoreStartCloseEmpty(t *testing.T) {
-	db := newTestStoreDB()
-	clock := &testStoreClock{}
-	handler := newTestStoreDataHandler()
+func TestCacheStoreStartCloseEmpty(t *testing.T) {
+	db := newTestCacheStoreDB()
+	clock := &testCacheStoreClock{}
+	handler := newTestCacheStoreDataHandler()
 
-	storeParams := StoreParams{}
+	storeParams := CacheStoreParams{}
 	storeParams.HTTP.FetchInterval = time.Millisecond * 100
 	storeParams.HTTP.FetchTimeout = time.Millisecond * 100
 
-	store := NewStore(
+	store := NewCacheStore(
 		context.Background(),
 		clock,
 		clock,
@@ -157,16 +157,16 @@ func TestStoreStartCloseEmpty(t *testing.T) {
 	store.Start()
 }
 
-func TestStoreCloseNoStart(t *testing.T) {
-	db := newTestStoreDB()
-	clock := &testStoreClock{}
-	handler := newTestStoreDataHandler()
+func TestCacheStoreCloseNoStart(t *testing.T) {
+	db := newTestCacheStoreDB()
+	clock := &testCacheStoreClock{}
+	handler := newTestCacheStoreDataHandler()
 
-	storeParams := StoreParams{}
+	storeParams := CacheStoreParams{}
 	storeParams.HTTP.FetchInterval = time.Millisecond * 100
 	storeParams.HTTP.FetchTimeout = time.Millisecond * 100
 
-	store := NewStore(
+	store := NewCacheStore(
 		context.Background(),
 		clock,
 		clock,
@@ -180,16 +180,16 @@ func TestStoreCloseNoStart(t *testing.T) {
 	}()
 }
 
-func TestStoreGetDescEmpty(t *testing.T) {
-	db := newTestStoreDB()
-	clock := &testStoreClock{}
-	handler := newTestStoreDataHandler()
+func TestCacheStoreGetDescEmpty(t *testing.T) {
+	db := newTestCacheStoreDB()
+	clock := &testCacheStoreClock{}
+	handler := newTestCacheStoreDataHandler()
 
-	storeParams := StoreParams{}
+	storeParams := CacheStoreParams{}
 	storeParams.HTTP.FetchInterval = time.Millisecond * 100
 	storeParams.HTTP.FetchTimeout = time.Millisecond * 100
 
-	store := NewStore(
+	store := NewCacheStore(
 		context.Background(),
 		clock,
 		clock,
@@ -206,16 +206,16 @@ func TestStoreGetDescEmpty(t *testing.T) {
 	require.Empty(t, descs)
 }
 
-func TestStoreRemoveNoAdd(t *testing.T) {
-	db := newTestStoreDB()
-	clock := &testStoreClock{}
-	handler := newTestStoreDataHandler()
+func TestCacheStoreRemoveNoAdd(t *testing.T) {
+	db := newTestCacheStoreDB()
+	clock := &testCacheStoreClock{}
+	handler := newTestCacheStoreDataHandler()
 
-	storeParams := StoreParams{}
+	storeParams := CacheStoreParams{}
 	storeParams.HTTP.FetchInterval = time.Millisecond * 100
 	storeParams.HTTP.FetchTimeout = time.Millisecond * 100
 
-	store := NewStore(
+	store := NewCacheStore(
 		context.Background(),
 		clock,
 		clock,
@@ -231,16 +231,16 @@ func TestStoreRemoveNoAdd(t *testing.T) {
 	require.Equal(t, status.StatusNoData, store.Remove("foo-bar-baz"))
 }
 
-func TestStoreAddURIUnsupportedScheme(t *testing.T) {
-	db := newTestStoreDB()
-	clock := &testStoreClock{}
-	handler := newTestStoreDataHandler()
+func TestCacheStoreAddURIUnsupportedScheme(t *testing.T) {
+	db := newTestCacheStoreDB()
+	clock := &testCacheStoreClock{}
+	handler := newTestCacheStoreDataHandler()
 
-	storeParams := StoreParams{}
+	storeParams := CacheStoreParams{}
 	storeParams.HTTP.FetchInterval = time.Millisecond * 100
 	storeParams.HTTP.FetchTimeout = time.Millisecond * 100
 
-	store := NewStore(
+	store := NewCacheStore(
 		context.Background(),
 		clock,
 		clock,
@@ -256,12 +256,12 @@ func TestStoreAddURIUnsupportedScheme(t *testing.T) {
 	require.Equal(t, status.StatusNotSupported, store.Add("foo-bar-baz", "foo-bar-baz"))
 }
 
-func TestStoreAddRemoveResourceNoResponse(t *testing.T) {
-	db := newTestStoreDB()
-	clock := &testStoreClock{}
-	handler := newTestStoreDataHandler()
+func TestCacheStoreAddRemoveResourceNoResponse(t *testing.T) {
+	db := newTestCacheStoreDB()
+	clock := &testCacheStoreClock{}
+	handler := newTestCacheStoreDataHandler()
 
-	storeParams := StoreParams{}
+	storeParams := CacheStoreParams{}
 	storeParams.HTTP.FetchInterval = time.Millisecond * 100
 	storeParams.HTTP.FetchTimeout = time.Millisecond * 100
 
@@ -272,7 +272,7 @@ func TestStoreAddRemoveResourceNoResponse(t *testing.T) {
 	)
 	defer cancelFunc()
 
-	store := NewStore(
+	store := NewCacheStore(
 		ctx,
 		clock,
 		clock,
@@ -323,16 +323,16 @@ func TestStoreAddRemoveResourceNoResponse(t *testing.T) {
 	require.Equal(t, 0, db.count())
 }
 
-func TestStoreAddRemove(t *testing.T) {
-	db := newTestStoreDB()
-	clock := &testStoreClock{}
-	handler := newTestStoreDataHandler()
+func TestCacheStoreAddRemove(t *testing.T) {
+	db := newTestCacheStoreDB()
+	clock := &testCacheStoreClock{}
+	handler := newTestCacheStoreDataHandler()
 
-	storeParams := StoreParams{}
+	storeParams := CacheStoreParams{}
 	storeParams.HTTP.FetchInterval = time.Millisecond * 100
 	storeParams.HTTP.FetchTimeout = time.Millisecond * 100
 
-	store := NewStore(
+	store := NewCacheStore(
 		context.Background(),
 		clock,
 		clock,
@@ -355,8 +355,8 @@ func TestStoreAddRemove(t *testing.T) {
 	registrationData["timestamp"] = float64(123)
 	registrationData["device_id"] = deviceID
 
-	telemetryHandler := newTestStoreHTTPDataHandler(telemetryData)
-	registrationHandler := newTestStoreHTTPDataHandler(registrationData)
+	telemetryHandler := newTestCacheStoreHTTPDataHandler(telemetryData)
+	registrationHandler := newTestCacheStoreHTTPDataHandler(registrationData)
 
 	mux := http.NewServeMux()
 	mux.Handle("/telemetry", telemetryHandler)
@@ -371,17 +371,17 @@ func TestStoreAddRemove(t *testing.T) {
 	require.True(t, maps.Equal(registrationData, <-handler.registration))
 }
 
-func TestStoreRestore(t *testing.T) {
-	db := newTestStoreDB()
+func TestCacheStoreRestore(t *testing.T) {
+	db := newTestCacheStoreDB()
 
-	makeStore := func(d stcore.DB, h device.DataHandler) *Store {
-		clock := &testStoreClock{}
+	makeStore := func(d stcore.DB, h device.DataHandler) *CacheStore {
+		clock := &testCacheStoreClock{}
 
-		storeParams := StoreParams{}
+		storeParams := CacheStoreParams{}
 		storeParams.HTTP.FetchInterval = time.Millisecond * 100
 		storeParams.HTTP.FetchTimeout = time.Millisecond * 100
 
-		return NewStore(
+		return NewCacheStore(
 			context.Background(),
 			clock,
 			clock,
@@ -392,7 +392,7 @@ func TestStoreRestore(t *testing.T) {
 		)
 	}
 
-	handler1 := newTestStoreDataHandler()
+	handler1 := newTestCacheStoreDataHandler()
 	store1 := makeStore(db, handler1)
 
 	require.Empty(t, store1.GetDesc())
@@ -407,8 +407,8 @@ func TestStoreRestore(t *testing.T) {
 	registrationData["timestamp"] = float64(123)
 	registrationData["device_id"] = deviceID
 
-	telemetryHandler := newTestStoreHTTPDataHandler(telemetryData)
-	registrationHandler := newTestStoreHTTPDataHandler(registrationData)
+	telemetryHandler := newTestCacheStoreHTTPDataHandler(telemetryData)
+	registrationHandler := newTestCacheStoreHTTPDataHandler(registrationData)
 
 	mux := http.NewServeMux()
 	mux.Handle("/telemetry", telemetryHandler)
@@ -427,7 +427,7 @@ func TestStoreRestore(t *testing.T) {
 
 	require.Nil(t, store1.Close())
 
-	handler2 := newTestStoreDataHandler()
+	handler2 := newTestCacheStoreDataHandler()
 	store2 := makeStore(db, handler2)
 
 	descs := store2.GetDesc()
@@ -445,7 +445,7 @@ func TestStoreRestore(t *testing.T) {
 
 	require.Nil(t, store2.Remove(deviceURI))
 
-	handler3 := newTestStoreDataHandler()
+	handler3 := newTestCacheStoreDataHandler()
 	store3 := makeStore(db, handler3)
 
 	require.Nil(t, store3.Add(deviceURI, deviceDesc))
@@ -453,16 +453,16 @@ func TestStoreRestore(t *testing.T) {
 	require.True(t, maps.Equal(registrationData, <-handler3.registration))
 }
 
-func TestStoreAddSameDevice(t *testing.T) {
-	db := newTestStoreDB()
-	clock := &testStoreClock{}
-	handler := newTestStoreDataHandler()
+func TestCacheStoreAddSameDevice(t *testing.T) {
+	db := newTestCacheStoreDB()
+	clock := &testCacheStoreClock{}
+	handler := newTestCacheStoreDataHandler()
 
-	storeParams := StoreParams{}
+	storeParams := CacheStoreParams{}
 	storeParams.HTTP.FetchInterval = time.Millisecond * 100
 	storeParams.HTTP.FetchTimeout = time.Millisecond * 100
 
-	store := NewStore(
+	store := NewCacheStore(
 		context.Background(),
 		clock,
 		clock,
@@ -479,16 +479,16 @@ func TestStoreAddSameDevice(t *testing.T) {
 	require.NotNil(t, store.Add("http://foo.bar.com", "foo-bar-com"))
 }
 
-func TestStoreNoopDB(t *testing.T) {
+func TestCacheStoreNoopDB(t *testing.T) {
 	db := &stcore.NoopDB{}
-	clock := &testStoreClock{}
-	handler := newTestStoreDataHandler()
+	clock := &testCacheStoreClock{}
+	handler := newTestCacheStoreDataHandler()
 
-	storeParams := StoreParams{}
+	storeParams := CacheStoreParams{}
 	storeParams.HTTP.FetchInterval = time.Millisecond * 100
 	storeParams.HTTP.FetchTimeout = time.Millisecond * 100
 
-	store := NewStore(
+	store := NewCacheStore(
 		context.Background(),
 		clock,
 		clock,
