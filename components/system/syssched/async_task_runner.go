@@ -48,17 +48,23 @@ func (r *AsyncTaskRunner) run() {
 	ticker := time.NewTicker(r.updateInterval)
 	defer ticker.Stop()
 
+	r.runTask()
+
 	for {
 		select {
 		case <-ticker.C:
-			if err := r.task.Run(); err != nil {
-				if r.reporter != nil {
-					r.reporter.ReportError(err)
-				}
-			}
+			r.runTask()
 
 		case <-r.ctx.Done():
 			return
+		}
+	}
+}
+
+func (r *AsyncTaskRunner) runTask() {
+	if err := r.task.Run(); err != nil {
+		if r.reporter != nil {
+			r.reporter.ReportError(err)
 		}
 	}
 }
