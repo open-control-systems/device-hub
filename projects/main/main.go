@@ -109,7 +109,7 @@ func (p *appPipeline) start(ec *envContext) error {
 		return errors.New("mDNS browse timeout can't be less than 1s")
 	}
 
-	mdnsBrowser, err := sysmdns.NewZeroconfBrowser(
+	mdnsBrowser := sysmdns.NewZeroconfBrowser(
 		appContext,
 		resolveStore,
 		sysmdns.ZeroconfBrowserParams{
@@ -118,9 +118,6 @@ func (p *appPipeline) start(ec *envContext) error {
 			Timeout: mdnsBrowseTimeout,
 		},
 	)
-	if err != nil {
-		return err
-	}
 	p.closer.Add("mdns-zeroconf-browser", mdnsBrowser)
 
 	mdnsBrowserRunner := syssched.NewAsyncTaskRunner(
