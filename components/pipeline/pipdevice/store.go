@@ -294,7 +294,7 @@ func (s *Store) makeNode(uri string, desc string, now time.Time) (*storeNode, er
 			u.Host,
 			desc,
 		),
-		&logErrorReporter{uri: uri, desc: desc},
+		&logErrorHandler{uri: uri, desc: desc},
 		s.params.HTTP.FetchInterval,
 	)
 

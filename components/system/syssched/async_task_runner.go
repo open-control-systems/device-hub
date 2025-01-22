@@ -3,6 +3,8 @@ package syssched
 import (
 	"context"
 	"time"
+
+	"github.com/open-control-systems/device-hub/components/core"
 )
 
 // AsyncTaskRunner periodically runs task in the standalone goroutine.
@@ -10,7 +12,7 @@ type AsyncTaskRunner struct {
 	ctx            context.Context
 	doneCh         chan struct{}
 	task           Task
-	reporter       ErrorReporter
+	handler        core.ErrorHandler
 	updateInterval time.Duration
 }
 
@@ -18,14 +20,14 @@ type AsyncTaskRunner struct {
 func NewAsyncTaskRunner(
 	ctx context.Context,
 	task Task,
-	reporter ErrorReporter,
+	handler core.ErrorHandler,
 	updateInterval time.Duration,
 ) *AsyncTaskRunner {
 	return &AsyncTaskRunner{
 		ctx:            ctx,
 		doneCh:         make(chan struct{}),
 		task:           task,
-		reporter:       reporter,
+		handler:        handler,
 		updateInterval: updateInterval,
 	}
 }
@@ -63,8 +65,8 @@ func (r *AsyncTaskRunner) run() {
 
 func (r *AsyncTaskRunner) runTask() {
 	if err := r.task.Run(); err != nil {
-		if r.reporter != nil {
-			r.reporter.ReportError(err)
+		if r.handler != nil {
+			r.handler.HandleError(err)
 		}
 	}
 }
