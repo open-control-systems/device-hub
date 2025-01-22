@@ -78,7 +78,7 @@ func (s *ResolveStore) Add(host string) {
 	s.knownHosts[host] = struct{}{}
 }
 
-// Remove remove host from the list of known hosts.
+// Remove removes host from the list of known hosts.
 func (s *ResolveStore) Remove(host string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
