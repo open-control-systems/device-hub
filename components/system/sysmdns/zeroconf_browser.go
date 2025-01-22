@@ -1,4 +1,4 @@
-package sysnet
+package sysmdns
 
 import (
 	"context"
@@ -9,10 +9,11 @@ import (
 	"github.com/grandcat/zeroconf"
 
 	"github.com/open-control-systems/device-hub/components/core"
+	"github.com/open-control-systems/device-hub/components/system/sysnet"
 )
 
-// ZeroconfMdnsBrowserParams represents various options for zeroconf mDNS browser.
-type ZeroconfMdnsBrowserParams struct {
+// ZeroconfBrowserParams represents various options for zeroconf mDNS browser.
+type ZeroconfBrowserParams struct {
 	// Service is a mDNS service to lookup for.
 	//
 	// Examples:
@@ -29,29 +30,29 @@ type ZeroconfMdnsBrowserParams struct {
 	Timeout time.Duration
 }
 
-// ZeroconfMdnsBrowser browses the local network for the mDNS devices.
+// ZeroconfBrowser browses the local network for the mDNS devices.
 //
 // References:
 //   - https://github.com/grandcat/zeroconf
-type ZeroconfMdnsBrowser struct {
-	params   ZeroconfMdnsBrowserParams
+type ZeroconfBrowser struct {
+	params   ZeroconfBrowserParams
 	ctx      context.Context
-	handler  ResolveHandler
+	handler  sysnet.ResolveHandler
 	resolver *zeroconf.Resolver
 }
 
-// NewZeroconfMdnsBrowser is an initialization of ZeroconfMdnsBrowser.
-func NewZeroconfMdnsBrowser(
+// NewZeroconfBrowser is an initialization of ZeroconfBrowser.
+func NewZeroconfBrowser(
 	ctx context.Context,
-	handler ResolveHandler,
-	params ZeroconfMdnsBrowserParams,
-) (*ZeroconfMdnsBrowser, error) {
+	handler sysnet.ResolveHandler,
+	params ZeroconfBrowserParams,
+) (*ZeroconfBrowser, error) {
 	resolver, err := zeroconf.NewResolver(nil)
 	if err != nil {
 		return nil, err
 	}
 
-	return &ZeroconfMdnsBrowser{
+	return &ZeroconfBrowser{
 		params:   params,
 		ctx:      ctx,
 		handler:  handler,
@@ -60,7 +61,7 @@ func NewZeroconfMdnsBrowser(
 }
 
 // Run executes a single mDNS lookup operation.
-func (b *ZeroconfMdnsBrowser) Run() error {
+func (b *ZeroconfBrowser) Run() error {
 	ctx, cancel := context.WithTimeout(b.ctx, b.params.Timeout)
 	defer cancel()
 
@@ -82,17 +83,17 @@ func (b *ZeroconfMdnsBrowser) Run() error {
 }
 
 // Close closes the browser resources.
-func (*ZeroconfMdnsBrowser) Close() error {
+func (*ZeroconfBrowser) Close() error {
 	return nil
 }
 
 // HandleError handles browsing errors.
-func (b *ZeroconfMdnsBrowser) HandleError(err error) {
+func (b *ZeroconfBrowser) HandleError(err error) {
 	core.LogErr.Printf("mdns-zeroconf-browser: browsing failed: service=%s domain=%s: %v\n",
 		b.params.Service, b.params.Domain, err)
 }
 
-func (b *ZeroconfMdnsBrowser) handleEntry(entry *zeroconf.ServiceEntry) {
+func (b *ZeroconfBrowser) handleEntry(entry *zeroconf.ServiceEntry) {
 	if len(entry.AddrIPv4) < 1 {
 		core.LogWrn.Printf("mdns-zeroconf-browser: ignore entry: service=%s domain=%s:"+
 			" IPv4 address not found\n", b.params.Service, b.params.Domain)
