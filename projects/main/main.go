@@ -22,6 +22,7 @@ import (
 	"github.com/open-control-systems/device-hub/components/storage/stinfluxdb"
 	"github.com/open-control-systems/device-hub/components/system/syscore"
 	"github.com/open-control-systems/device-hub/components/system/sysnet"
+	"github.com/open-control-systems/device-hub/components/system/syssched"
 )
 
 type envContext struct {
@@ -33,6 +34,11 @@ type envContext struct {
 	deviceHTTP struct {
 		fetchTimeout  string
 		fetchInterval string
+	}
+
+	mdns struct {
+		browseInterval string
+		browseTimeout  string
 	}
 }
 
@@ -84,6 +90,46 @@ func (p *appPipeline) start(ec *envContext) error {
 		db = &stcore.NoopDB{}
 	}
 
+	resolveStore := sysnet.NewResolveStore()
+
+	mdnsBrowseInterval, err := time.ParseDuration(ec.mdns.browseInterval)
+	if err != nil {
+		return err
+	}
+	if mdnsBrowseInterval < time.Second {
+		return errors.New("mDNS browse interval can't be less than 1s")
+	}
+
+	mdnsBrowseTimeout, err := time.ParseDuration(ec.mdns.browseTimeout)
+	if err != nil {
+		return err
+	}
+	if mdnsBrowseTimeout < time.Second {
+		return errors.New("mDNS browse timeout can't be less than 1s")
+	}
+
+	mdnsBrowser, err := sysnet.NewZeroconfMdnsBrowser(
+		appContext,
+		resolveStore,
+		sysnet.ZeroconfMdnsBrowserParams{
+			Service: sysnet.MdnsServiceName(sysnet.MdnsServiceTypeHTTP, sysnet.MdnsProtoTCP),
+			Domain:  "local",
+			Timeout: mdnsBrowseTimeout,
+		},
+	)
+	if err != nil {
+		return err
+	}
+	p.closer.Add("mdns-zeroconf-browser", mdnsBrowser)
+
+	mdnsBrowserRunner := syssched.NewAsyncTaskRunner(
+		appContext,
+		mdnsBrowser,
+		mdnsBrowser,
+		mdnsBrowseInterval,
+	)
+	p.closer.Add("mdns-zeroconf-browser-runner", mdnsBrowserRunner)
+
 	fetchInterval, err := time.ParseDuration(ec.deviceHTTP.fetchInterval)
 	if err != nil {
 		return err
@@ -110,7 +156,7 @@ func (p *appPipeline) start(ec *envContext) error {
 		storagePipeline.GetSystemClock(),
 		storagePipeline.GetDataHandler(),
 		db,
-		sysnet.NewResolveStore(),
+		resolveStore,
 		deviceStoreParams,
 	)
 	p.closer.Add("device-pipeline-store", deviceStore)
@@ -122,6 +168,7 @@ func (p *appPipeline) start(ec *envContext) error {
 		pipdevice.NewStoreHTTPHandler(deviceStore),
 	)
 
+	mdnsBrowserRunner.Start()
 	deviceStore.Start()
 	storagePipeline.Start()
 	serverPipeline.Start()
@@ -235,6 +282,20 @@ func main() {
 		"device-http-fetch-timeout", "5s",
 		"HTTP device data fetch timeout, in form of: 1h35m10s12ms"+
 			" (valid time units are ms, s, m, h)",
+	)
+
+	cmd.Flags().StringVar(
+		&envContext.mdns.browseInterval,
+		"mdns-browse-interval", "1m",
+		"How often to perform mDNS lookup over local network, in form of: 1h35m10s"+
+			" (valid time units are s, m, h)",
+	)
+
+	cmd.Flags().StringVar(
+		&envContext.mdns.browseTimeout,
+		"mdns-browse-timeout", "30s",
+		"How long to perform a single mDNS lookup over local network, in form of: 1h35m10s"+
+			" (valid time units are s, m, h)",
 	)
 
 	if err := cmd.Execute(); err != nil {
