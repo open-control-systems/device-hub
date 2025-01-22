@@ -159,11 +159,13 @@ func (p *appPipeline) start(ec *envContext) error {
 	)
 	p.closer.Add("device-cache-store", cacheStore)
 
+	storeAwakener := pipdevice.NewStoreAwakener(mdnsBrowserRunner, cacheStore)
+
 	registerHTTPRoutes(
 		serverPipeline.GetServeMux(),
 		// Time valid since 2024/12/03.
 		piphttp.NewSystemTimeHandler(p.systemClock, time.Unix(1733215816, 0)),
-		pipdevice.NewStoreHTTPHandler(cacheStore),
+		pipdevice.NewStoreHTTPHandler(storeAwakener),
 	)
 
 	mdnsBrowserRunner.Start()
