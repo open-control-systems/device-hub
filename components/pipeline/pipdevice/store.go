@@ -273,7 +273,7 @@ func (s *Store) makeNode(uri string, desc string, now time.Time) (*storeNode, er
 	}
 
 	deviceType := parseDeviceType(u.Scheme)
-	if deviceType == unsupportedDevice {
+	if deviceType == deviceTypeUnsupported {
 		return nil, status.StatusNotSupported
 	}
 
@@ -386,16 +386,16 @@ func (s *Store) makeHTTPClient(
 type deviceType int
 
 const (
-	unsupportedDevice = iota
-	httpDevice
+	deviceTypeUnsupported deviceType = iota
+	deviceTypeHTTP
 )
 
 func parseDeviceType(scheme string) deviceType {
 	if scheme == "http" || scheme == "https" {
-		return httpDevice
+		return deviceTypeHTTP
 	}
 
-	return unsupportedDevice
+	return deviceTypeUnsupported
 }
 
 type storageItem struct {
