@@ -11,6 +11,7 @@ import (
 type AsyncTaskRunner struct {
 	ctx            context.Context
 	doneCh         chan struct{}
+	awakeCh        chan struct{}
 	task           Task
 	handler        core.ErrorHandler
 	updateInterval time.Duration
@@ -26,6 +27,7 @@ func NewAsyncTaskRunner(
 	return &AsyncTaskRunner{
 		ctx:            ctx,
 		doneCh:         make(chan struct{}),
+		awakeCh:        make(chan struct{}, 1),
 		task:           task,
 		handler:        handler,
 		updateInterval: updateInterval,
@@ -44,6 +46,14 @@ func (r *AsyncTaskRunner) Close() error {
 	return nil
 }
 
+// Awake wakes up the underlying goroutine.
+func (r *AsyncTaskRunner) Awake() {
+	select {
+	case r.awakeCh <- struct{}{}:
+	default:
+	}
+}
+
 func (r *AsyncTaskRunner) run() {
 	defer close(r.doneCh)
 
@@ -55,6 +65,9 @@ func (r *AsyncTaskRunner) run() {
 	for {
 		select {
 		case <-ticker.C:
+			r.runTask()
+
+		case <-r.awakeCh:
 			r.runTask()
 
 		case <-r.ctx.Done():
