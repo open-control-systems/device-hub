@@ -323,7 +323,7 @@ func (s *Store) newHTTPDevice(
 ) syssched.Task {
 	remoteCurrClock := piphttp.NewSystemClock(
 		ctx,
-		s.makeHTTPClient(ctx, closer, baseURL, host, desc),
+		s.makeHTTPClient(closer, baseURL, host, desc),
 		baseURL+"/system/time",
 		s.params.HTTP.FetchTimeout,
 	)
@@ -334,13 +334,13 @@ func (s *Store) newHTTPDevice(
 	return device.NewPollDevice(
 		htcore.NewURLFetcher(
 			ctx,
-			s.makeHTTPClient(ctx, closer, baseURL, host, desc),
+			s.makeHTTPClient(closer, baseURL, host, desc),
 			baseURL+"/registration",
 			s.params.HTTP.FetchTimeout,
 		),
 		htcore.NewURLFetcher(
 			ctx,
-			s.makeHTTPClient(ctx, closer, baseURL, host, desc),
+			s.makeHTTPClient(closer, baseURL, host, desc),
 			baseURL+"/telemetry",
 			s.params.HTTP.FetchTimeout,
 		),
@@ -350,7 +350,6 @@ func (s *Store) newHTTPDevice(
 }
 
 func (s *Store) makeHTTPClient(
-	ctx context.Context,
 	closer *core.FanoutCloser,
 	uri string,
 	host string,
@@ -367,18 +366,6 @@ func (s *Store) makeHTTPClient(
 
 		return nil
 	}))
-
-	resolveTask := sysnet.NewPionMdnsTask(ctx, s.resolveStore, time.Second*5, host)
-	closer.Add("resolve-task-"+desc, resolveTask)
-
-	asyncTaskRunner := syssched.NewAsyncTaskRunner(
-		ctx,
-		resolveTask,
-		resolveTask,
-		time.Second*5)
-
-	asyncTaskRunner.Start()
-	closer.Add("resolve-task-runner-"+desc, asyncTaskRunner)
 
 	return htcore.NewResolveClient(s.resolveStore)
 }
