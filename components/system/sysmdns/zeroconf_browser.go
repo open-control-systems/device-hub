@@ -35,10 +35,9 @@ type ZeroconfBrowserParams struct {
 // References:
 //   - https://github.com/grandcat/zeroconf
 type ZeroconfBrowser struct {
-	params   ZeroconfBrowserParams
-	ctx      context.Context
-	handler  sysnet.ResolveHandler
-	resolver *zeroconf.Resolver
+	params  ZeroconfBrowserParams
+	ctx     context.Context
+	handler sysnet.ResolveHandler
 }
 
 // NewZeroconfBrowser is an initialization of ZeroconfBrowser.
@@ -46,28 +45,27 @@ func NewZeroconfBrowser(
 	ctx context.Context,
 	handler sysnet.ResolveHandler,
 	params ZeroconfBrowserParams,
-) (*ZeroconfBrowser, error) {
-	resolver, err := zeroconf.NewResolver(nil)
-	if err != nil {
-		return nil, err
-	}
-
+) *ZeroconfBrowser {
 	return &ZeroconfBrowser{
-		params:   params,
-		ctx:      ctx,
-		handler:  handler,
-		resolver: resolver,
-	}, nil
+		params:  params,
+		ctx:     ctx,
+		handler: handler,
+	}
 }
 
 // Run executes a single mDNS lookup operation.
 func (b *ZeroconfBrowser) Run() error {
+	resolver, err := zeroconf.NewResolver(nil)
+	if err != nil {
+		return err
+	}
+
 	ctx, cancel := context.WithTimeout(b.ctx, b.params.Timeout)
 	defer cancel()
 
 	entries := make(chan *zeroconf.ServiceEntry)
 
-	if err := b.resolver.Browse(ctx, b.params.Service, b.params.Domain, entries); err != nil {
+	if err := resolver.Browse(ctx, b.params.Service, b.params.Domain, entries); err != nil {
 		return err
 	}
 
