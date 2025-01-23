@@ -3,13 +3,11 @@ package sysmdns
 import (
 	"context"
 	"net"
-	"strings"
 	"time"
 
 	"github.com/grandcat/zeroconf"
 
 	"github.com/open-control-systems/device-hub/components/core"
-	"github.com/open-control-systems/device-hub/components/system/sysnet"
 )
 
 // ZeroconfBrowserParams represents various options for zeroconf mDNS browser.
@@ -37,13 +35,13 @@ type ZeroconfBrowserParams struct {
 type ZeroconfBrowser struct {
 	params  ZeroconfBrowserParams
 	ctx     context.Context
-	handler sysnet.ResolveHandler
+	handler ServiceHandler
 }
 
 // NewZeroconfBrowser is an initialization of ZeroconfBrowser.
 func NewZeroconfBrowser(
 	ctx context.Context,
-	handler sysnet.ResolveHandler,
+	handler ServiceHandler,
 	params ZeroconfBrowserParams,
 ) *ZeroconfBrowser {
 	return &ZeroconfBrowser{
@@ -92,13 +90,38 @@ func (b *ZeroconfBrowser) HandleError(err error) {
 }
 
 func (b *ZeroconfBrowser) handleEntry(entry *zeroconf.ServiceEntry) {
-	if len(entry.AddrIPv4) < 1 {
-		core.LogWrn.Printf("mdns-zeroconf-browser: ignore entry: service=%s domain=%s:"+
-			" IPv4 address not found\n", b.params.Service, b.params.Domain)
-	}
+	service := &zeroconfService{entry: entry}
 
-	b.handler.HandleResolve(
-		strings.TrimSuffix(entry.HostName, "."),
-		&net.IPAddr{IP: entry.AddrIPv4[0]},
-	)
+	if err := b.handler.HandleService(service); err != nil {
+		core.LogWrn.Printf("mdns-zeroconf-browser: failed to handle service: service=%s"+
+			" domain=%s err=%v\n", b.params.Service, b.params.Domain, err)
+	}
+}
+
+type zeroconfService struct {
+	entry *zeroconf.ServiceEntry
+}
+
+func (s *zeroconfService) Instance() string {
+	return s.entry.Instance
+}
+
+func (s *zeroconfService) Name() string {
+	return s.entry.Service
+}
+
+func (s *zeroconfService) Hostname() string {
+	return s.entry.HostName
+}
+
+func (s *zeroconfService) Port() int {
+	return s.entry.Port
+}
+
+func (s *zeroconfService) TxtRecords() []string {
+	return s.entry.Text
+}
+
+func (s *zeroconfService) Addrs() []net.IP {
+	return s.entry.AddrIPv4
 }
