@@ -109,9 +109,11 @@ func (p *appPipeline) start(ec *envContext) error {
 		return errors.New("mDNS browse timeout can't be less than 1s")
 	}
 
+	resolveServiceHandler := sysmdns.NewResolveServiceHandler(resolveStore)
+
 	mdnsBrowser := sysmdns.NewZeroconfBrowser(
 		appContext,
-		resolveStore,
+		resolveServiceHandler,
 		sysmdns.ZeroconfBrowserParams{
 			Service: sysmdns.ServiceName(sysmdns.ServiceTypeHTTP, sysmdns.ProtoTCP),
 			Domain:  "local",
