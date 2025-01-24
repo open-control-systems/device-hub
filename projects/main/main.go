@@ -304,7 +304,7 @@ func main() {
 	)
 
 	if err := cmd.Execute(); err != nil {
-		core.LogErr.Printf("main: failed to execute command: %v\n", err)
+		_, _ = fmt.Fprintf(os.Stderr, "error: failed to execute command: %v\n", err)
 		os.Exit(1)
 	}
 }
