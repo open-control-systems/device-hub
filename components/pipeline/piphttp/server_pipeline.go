@@ -48,3 +48,8 @@ func (p *ServerPipeline) GetServeMux() *http.ServeMux {
 func (p *ServerPipeline) Start() {
 	p.server.Start()
 }
+
+// Close stops serving HTTP requests.
+func (p *ServerPipeline) Close() error {
+	return p.server.Close()
+}

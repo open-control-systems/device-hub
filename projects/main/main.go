@@ -66,6 +66,7 @@ func (p *appPipeline) start(ec *envContext) error {
 	if err != nil {
 		return err
 	}
+	p.closer.Add("server-pipeline", serverPipeline)
 	p.starter.Add(serverPipeline)
 
 	storagePipeline := stinfluxdb.NewPipeline(appContext, ec.dbParams)
