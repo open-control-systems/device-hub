@@ -40,8 +40,9 @@ type envContext struct {
 	}
 
 	mdns struct {
-		browseInterval string
-		browseTimeout  string
+		browseInterval       string
+		browseTimeout        string
+		disableAutodiscovery bool
 	}
 }
 
@@ -111,11 +112,14 @@ func (p *appPipeline) start(ec *envContext) error {
 		return errors.New("mDNS browse timeout can't be less than 1s")
 	}
 
+	fanoutServiceHandler := &sysmdns.FanoutServiceHandler{}
+
 	resolveServiceHandler := sysmdns.NewResolveServiceHandler(resolveStore)
+	fanoutServiceHandler.Add(resolveServiceHandler)
 
 	mdnsBrowser := sysmdns.NewZeroconfBrowser(
 		appContext,
-		resolveServiceHandler,
+		fanoutServiceHandler,
 		sysmdns.ZeroconfBrowserParams{
 			Service: sysmdns.ServiceName(sysmdns.ServiceTypeHTTP, sysmdns.ProtoTCP),
 			Domain:  "local",
@@ -165,13 +169,18 @@ func (p *appPipeline) start(ec *envContext) error {
 	p.closer.Add("device-cache-store", cacheStore)
 	p.starter.Add(cacheStore)
 
-	storeAwakener := pipdevice.NewStoreAwakener(mdnsBrowserRunner, cacheStore)
+	deviceStore := pipdevice.NewStoreAwakener(mdnsBrowserRunner, cacheStore)
+
+	if !ec.mdns.disableAutodiscovery {
+		storeMdnsHandler := pipdevice.NewStoreMdnsHandler(deviceStore)
+		fanoutServiceHandler.Add(storeMdnsHandler)
+	}
 
 	registerHTTPRoutes(
 		serverPipeline.GetServeMux(),
 		// Time valid since 2024/12/03.
 		piphttp.NewSystemTimeHandler(p.systemClock, time.Unix(1733215816, 0)),
-		pipdevice.NewStoreHTTPHandler(storeAwakener),
+		pipdevice.NewStoreHTTPHandler(deviceStore),
 	)
 
 	p.starter.Start()
@@ -306,6 +315,12 @@ func main() {
 		"mdns-browse-timeout", "30s",
 		"How long to perform a single mDNS lookup over local network, in form of: 1h35m10s"+
 			" (valid time units are s, m, h)",
+	)
+
+	cmd.Flags().BoolVar(
+		&envContext.mdns.disableAutodiscovery,
+		"mdns-autodiscovery-disable", false,
+		"Disable automatic device discovery on the local network",
 	)
 
 	if err := cmd.Execute(); err != nil {
