@@ -55,11 +55,6 @@ func (p *appPipeline) start(ec *envContext) error {
 		syscall.SIGTERM,
 		syscall.SIGQUIT)
 	defer cancelFunc()
-	defer func() {
-		if err := p.closer.Close(); err != nil {
-			core.LogErr.Printf("main: failed to close resources: %v\n", err)
-		}
-	}()
 
 	serverPipeline, err := piphttp.NewServerPipeline(
 		p.closer,
@@ -180,6 +175,10 @@ func (p *appPipeline) start(ec *envContext) error {
 	return nil
 }
 
+func (p *appPipeline) close() error {
+	return p.closer.Close()
+}
+
 func registerHTTPRoutes(
 	mux *http.ServeMux,
 	timeHandler *piphttp.SystemTimeHandler,
@@ -254,7 +253,11 @@ func main() {
 			return prepareEnvironment(envContext)
 		},
 		RunE: func(_ *cobra.Command, _ []string) error {
-			return appPipeline.start(envContext)
+			if err := appPipeline.start(envContext); err != nil {
+				return err
+			}
+
+			return appPipeline.close()
 		},
 	}
 
