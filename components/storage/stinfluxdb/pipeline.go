@@ -6,7 +6,6 @@ import (
 
 	influxdb2 "github.com/influxdata/influxdb-client-go/v2"
 
-	"github.com/open-control-systems/device-hub/components/core"
 	"github.com/open-control-systems/device-hub/components/system/syscore"
 )
 
@@ -21,11 +20,9 @@ type Pipeline struct {
 //
 // Parameters:
 //   - ctx - parent context.
-//   - closer - to register the handler for the underlying resource deallocation.
 //   - params - various influxDB configuration parameters.
 func NewPipeline(
 	ctx context.Context,
-	closer *core.FanoutCloser,
 	params DBParams,
 ) *Pipeline {
 	dbClient := influxdb2.NewClient(params.URL, params.Token)
@@ -33,17 +30,12 @@ func NewPipeline(
 	queryClient := dbClient.QueryAPI(params.Org)
 
 	clock := newSystemClock(ctx, queryClient, time.Second*5, params)
-	closer.Add("influxdb-system-clock", clock)
 
-	pipeline := &Pipeline{
+	return &Pipeline{
 		dbClient: dbClient,
 		clock:    clock,
 		handler:  NewDataHandler(ctx, clock, writeClient),
 	}
-
-	closer.Add("influxdb-pipeline", pipeline)
-
-	return pipeline
 }
 
 // GetDataHandler returns the underlying influxdb data handler.
@@ -65,5 +57,5 @@ func (p *Pipeline) Start() {
 func (p *Pipeline) Close() error {
 	p.dbClient.Close()
 
-	return nil
+	return p.clock.Close()
 }

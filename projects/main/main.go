@@ -68,7 +68,8 @@ func (p *appPipeline) start(ec *envContext) error {
 	}
 	p.starter.Add(serverPipeline)
 
-	storagePipeline := stinfluxdb.NewPipeline(appContext, p.closer, ec.dbParams)
+	storagePipeline := stinfluxdb.NewPipeline(appContext, ec.dbParams)
+	p.closer.Add("storage-influxdb-pipeline", storagePipeline)
 	p.starter.Add(storagePipeline)
 
 	var db stcore.DB
