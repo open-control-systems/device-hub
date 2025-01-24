@@ -1,5 +1,7 @@
 package pipdevice
 
+import "errors"
+
 // StoreItem is a description of a single device.
 type StoreItem struct {
 	URI       string `json:"uri"`
@@ -7,6 +9,9 @@ type StoreItem struct {
 	ID        string `json:"id"`
 	CreatedAt string `json:"created_at"`
 }
+
+// ErrDeviceExist is returned if the device already exists in the store.
+var ErrDeviceExist = errors.New("device already exists")
 
 // Store to manage device registration life-cycle.
 type Store interface {
@@ -17,7 +22,8 @@ type Store interface {
 	//   - desc - human readable device description.
 	//
 	// Remarks:
-	//   - uri should be unique
+	//   - uri should be unique.
+	//   - ErrDeviceExist is returned if the device already exists.
 	//
 	// URI examples:
 	//   - http://bonsai-growlab.local/api/v1. mDNS HTTP API

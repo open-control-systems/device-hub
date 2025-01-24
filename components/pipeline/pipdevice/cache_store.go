@@ -119,7 +119,7 @@ func (s *CacheStore) Add(uri string, desc string) error {
 	key := hashURI(uri)
 
 	if _, ok := s.nodes[key]; ok {
-		return fmt.Errorf("device with uri=%s already exists", uri)
+		return ErrDeviceExist
 	}
 
 	now := time.Now()
