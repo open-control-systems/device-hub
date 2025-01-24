@@ -32,9 +32,11 @@ type envContext struct {
 	cacheDir string
 	port     int
 
-	deviceHTTP struct {
-		fetchTimeout  string
-		fetchInterval string
+	device struct {
+		HTTP struct {
+			fetchTimeout  string
+			fetchInterval string
+		}
 	}
 
 	mdns struct {
@@ -131,7 +133,7 @@ func (p *appPipeline) start(ec *envContext) error {
 	p.closer.Add("mdns-zeroconf-browser-runner", mdnsBrowserRunner)
 	p.starter.Add(mdnsBrowserRunner)
 
-	fetchInterval, err := time.ParseDuration(ec.deviceHTTP.fetchInterval)
+	fetchInterval, err := time.ParseDuration(ec.device.HTTP.fetchInterval)
 	if err != nil {
 		return err
 	}
@@ -139,7 +141,7 @@ func (p *appPipeline) start(ec *envContext) error {
 		return errors.New("HTTP device fetch interval can't be less than 1ms")
 	}
 
-	fetchTimeout, err := time.ParseDuration(ec.deviceHTTP.fetchTimeout)
+	fetchTimeout, err := time.ParseDuration(ec.device.HTTP.fetchTimeout)
 	if err != nil {
 		return err
 	}
@@ -282,16 +284,14 @@ func main() {
 		"influxdb bucket")
 
 	cmd.Flags().StringVar(
-		&envContext.deviceHTTP.fetchInterval,
+		&envContext.device.HTTP.fetchInterval,
 		"device-http-fetch-interval", "5s",
-		"HTTP device data fetch interval, in form of: 1h35m10s12ms"+
-			" (valid time units are ms, s, m, h)",
+		"HTTP device data fetch interval",
 	)
 	cmd.Flags().StringVar(
-		&envContext.deviceHTTP.fetchTimeout,
+		&envContext.device.HTTP.fetchTimeout,
 		"device-http-fetch-timeout", "5s",
-		"HTTP device data fetch timeout, in form of: 1h35m10s12ms"+
-			" (valid time units are ms, s, m, h)",
+		"HTTP device data fetch timeout",
 	)
 
 	cmd.Flags().StringVar(
