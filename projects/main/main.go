@@ -45,6 +45,7 @@ type envContext struct {
 
 type appPipeline struct {
 	closer      *core.FanoutCloser
+	starter     *syssched.FanoutStarter
 	systemClock syscore.SystemClock
 }
 
@@ -65,8 +66,10 @@ func (p *appPipeline) start(ec *envContext) error {
 	if err != nil {
 		return err
 	}
+	p.starter.Add(serverPipeline)
 
 	storagePipeline := stinfluxdb.NewPipeline(appContext, p.closer, ec.dbParams)
+	p.starter.Add(storagePipeline)
 
 	var db stcore.DB
 
@@ -124,6 +127,7 @@ func (p *appPipeline) start(ec *envContext) error {
 		mdnsBrowseInterval,
 	)
 	p.closer.Add("mdns-zeroconf-browser-runner", mdnsBrowserRunner)
+	p.starter.Add(mdnsBrowserRunner)
 
 	fetchInterval, err := time.ParseDuration(ec.deviceHTTP.fetchInterval)
 	if err != nil {
@@ -155,6 +159,7 @@ func (p *appPipeline) start(ec *envContext) error {
 		cacheStoreParams,
 	)
 	p.closer.Add("device-cache-store", cacheStore)
+	p.starter.Add(cacheStore)
 
 	storeAwakener := pipdevice.NewStoreAwakener(mdnsBrowserRunner, cacheStore)
 
@@ -165,10 +170,7 @@ func (p *appPipeline) start(ec *envContext) error {
 		pipdevice.NewStoreHTTPHandler(storeAwakener),
 	)
 
-	mdnsBrowserRunner.Start()
-	cacheStore.Start()
-	storagePipeline.Start()
-	serverPipeline.Start()
+	p.starter.Start()
 
 	<-appContext.Done()
 
@@ -201,6 +203,7 @@ func newAppPipeline() *appPipeline {
 	return &appPipeline{
 		systemClock: &syscore.LocalSystemClock{},
 		closer:      &core.FanoutCloser{},
+		starter:     &syssched.FanoutStarter{},
 	}
 }
 
