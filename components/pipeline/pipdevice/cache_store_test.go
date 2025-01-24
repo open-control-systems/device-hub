@@ -476,7 +476,7 @@ func TestCacheStoreAddSameDevice(t *testing.T) {
 	}()
 
 	require.Nil(t, store.Add("http://foo.bar.com", "foo-bar-com"))
-	require.NotNil(t, store.Add("http://foo.bar.com", "foo-bar-com"))
+	require.Equal(t, ErrDeviceExist, store.Add("http://foo.bar.com", "foo-bar-com"))
 }
 
 func TestCacheStoreNoopDB(t *testing.T) {
