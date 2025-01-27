@@ -1,4 +1,4 @@
-package pipdevice
+package devstore
 
 import (
 	"encoding/json"

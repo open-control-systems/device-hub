@@ -1,11 +1,12 @@
-package pipdevice
+package devstore
 
 import (
 	"net"
 	"testing"
 
-	"github.com/open-control-systems/device-hub/components/status"
 	"github.com/stretchr/testify/require"
+
+	"github.com/open-control-systems/device-hub/components/status"
 )
 
 type testStoreMdnsHandlerStore struct {

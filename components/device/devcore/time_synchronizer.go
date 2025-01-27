@@ -1,4 +1,4 @@
-package device
+package devcore
 
 // TimeSynchronizer synchronizes time between local and remote resources.
 type TimeSynchronizer interface {

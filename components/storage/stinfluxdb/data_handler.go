@@ -8,7 +8,7 @@ import (
 	influxdb2 "github.com/influxdata/influxdb-client-go/v2"
 	"github.com/influxdata/influxdb-client-go/v2/api"
 
-	"github.com/open-control-systems/device-hub/components/device"
+	"github.com/open-control-systems/device-hub/components/device/devcore"
 	"github.com/open-control-systems/device-hub/components/system/syscore"
 )
 
@@ -42,16 +42,16 @@ func NewDataHandler(
 }
 
 // HandleTelemetry stores telemetry data in influxDB.
-func (h *DataHandler) HandleTelemetry(deviceID string, js device.JSON) error {
+func (h *DataHandler) HandleTelemetry(deviceID string, js devcore.JSON) error {
 	return h.handleData("telemetry", deviceID, js)
 }
 
 // HandleRegistration stores registration data in influxDB.
-func (h *DataHandler) HandleRegistration(deviceID string, js device.JSON) error {
+func (h *DataHandler) HandleRegistration(deviceID string, js devcore.JSON) error {
 	return h.handleData("registration", deviceID, js)
 }
 
-func (h *DataHandler) handleData(dataID string, deviceID string, js device.JSON) error {
+func (h *DataHandler) handleData(dataID string, deviceID string, js devcore.JSON) error {
 	ts, ok := js["timestamp"]
 	if !ok {
 		return fmt.Errorf("influxdb-data-handler: missed timestamp field")
