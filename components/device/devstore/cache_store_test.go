@@ -63,12 +63,12 @@ func (d *testCacheStoreDB) ForEach(fn func(key string, b stcore.Blob) error) err
 	return nil
 }
 
-func (d *testCacheStoreDB) count() int {
-	return len(d.data)
-}
-
 func (*testCacheStoreDB) Close() error {
 	return nil
+}
+
+func (d *testCacheStoreDB) count() int {
+	return len(d.data)
 }
 
 type testCacheStoreDataHandler struct {
@@ -133,7 +133,7 @@ func (h *testCacheStoreHTTPDataHandler) ServeHTTP(w http.ResponseWriter, _ *http
 	}
 }
 
-func TestCacheStoreStartCloseEmpty(t *testing.T) {
+func TestCacheStoreStartStopEmpty(t *testing.T) {
 	db := newTestCacheStoreDB()
 	clock := &testCacheStoreClock{}
 	handler := newTestCacheStoreDataHandler()
@@ -152,13 +152,13 @@ func TestCacheStoreStartCloseEmpty(t *testing.T) {
 		storeParams,
 	)
 	defer func() {
-		require.Nil(t, store.Close())
+		require.Nil(t, store.Stop())
 	}()
 
 	store.Start()
 }
 
-func TestCacheStoreCloseNoStart(t *testing.T) {
+func TestCacheStoreStopNoStart(t *testing.T) {
 	db := newTestCacheStoreDB()
 	clock := &testCacheStoreClock{}
 	handler := newTestCacheStoreDataHandler()
@@ -177,7 +177,7 @@ func TestCacheStoreCloseNoStart(t *testing.T) {
 		storeParams,
 	)
 	defer func() {
-		require.Nil(t, store.Close())
+		require.Nil(t, store.Stop())
 	}()
 }
 
@@ -200,7 +200,7 @@ func TestCacheStoreGetDescEmpty(t *testing.T) {
 		storeParams,
 	)
 	defer func() {
-		require.Nil(t, store.Close())
+		require.Nil(t, store.Stop())
 	}()
 
 	descs := store.GetDesc()
@@ -226,7 +226,7 @@ func TestCacheStoreRemoveNoAdd(t *testing.T) {
 		storeParams,
 	)
 	defer func() {
-		require.Nil(t, store.Close())
+		require.Nil(t, store.Stop())
 	}()
 
 	require.Equal(t, status.StatusNoData, store.Remove("foo-bar-baz"))
@@ -251,7 +251,7 @@ func TestCacheStoreAddURIUnsupportedScheme(t *testing.T) {
 		storeParams,
 	)
 	defer func() {
-		require.Nil(t, store.Close())
+		require.Nil(t, store.Stop())
 	}()
 
 	require.Equal(t, status.StatusNotSupported, store.Add("foo-bar-baz", "foo-bar-baz"))
@@ -283,7 +283,7 @@ func TestCacheStoreAddRemoveResourceNoResponse(t *testing.T) {
 		storeParams,
 	)
 	defer func() {
-		require.Nil(t, store.Close())
+		require.Nil(t, store.Stop())
 	}()
 
 	tests := []struct {
@@ -343,7 +343,7 @@ func TestCacheStoreAddRemove(t *testing.T) {
 		storeParams,
 	)
 	defer func() {
-		require.Nil(t, store.Close())
+		require.Nil(t, store.Stop())
 	}()
 
 	deviceID := "0xABCD"
@@ -426,7 +426,7 @@ func TestCacheStoreRestore(t *testing.T) {
 	require.True(t, maps.Equal(telemetryData, <-handler1.telemetry))
 	require.True(t, maps.Equal(registrationData, <-handler1.registration))
 
-	require.Nil(t, store1.Close())
+	require.Nil(t, store1.Stop())
 
 	handler2 := newTestCacheStoreDataHandler()
 	store2 := makeStore(db, handler2)
@@ -473,7 +473,7 @@ func TestCacheStoreAddSameDevice(t *testing.T) {
 		storeParams,
 	)
 	defer func() {
-		require.Nil(t, store.Close())
+		require.Nil(t, store.Stop())
 	}()
 
 	require.Nil(t, store.Add("http://foo.bar.com", "foo-bar-com"))
@@ -499,7 +499,7 @@ func TestCacheStoreNoopDB(t *testing.T) {
 		storeParams,
 	)
 	defer func() {
-		require.Nil(t, store.Close())
+		require.Nil(t, store.Stop())
 	}()
 
 	deviceURI := "http://foo.bar.com"

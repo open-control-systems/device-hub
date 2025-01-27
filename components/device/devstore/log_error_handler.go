@@ -1,6 +1,6 @@
 package devstore
 
-import "github.com/open-control-systems/device-hub/components/core"
+import "github.com/open-control-systems/device-hub/components/system/syscore"
 
 type logErrorHandler struct {
 	uri  string
@@ -8,6 +8,6 @@ type logErrorHandler struct {
 }
 
 func (h *logErrorHandler) HandleError(err error) {
-	core.LogErr.Printf("device-error-handler: failed to handle device data:"+
+	syscore.LogErr.Printf("device-error-handler: failed to handle device data:"+
 		" uri=%s desc=%s err=%v\n", h.uri, h.desc, err)
 }

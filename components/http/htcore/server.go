@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/open-control-systems/device-hub/components/core"
+	"github.com/open-control-systems/device-hub/components/system/syscore"
 )
 
 // Server is a wrapper for http.Server.
@@ -65,8 +65,8 @@ func (s *Server) Start() {
 	go s.run()
 }
 
-// Close stops the server and waits until it finishes.
-func (s *Server) Close() error {
+// Stop stops the server and waits until it finishes.
+func (s *Server) Stop() error {
 	err := s.server.Close()
 
 	_ = s.ln.Close()
@@ -85,6 +85,6 @@ func (s *Server) run() {
 	defer close(s.doneCh)
 
 	if err := s.server.Serve(s.ln); err != nil && err != http.ErrServerClosed {
-		core.LogErr.Printf("http-server: failed to serve connection: %v\n", err)
+		syscore.LogErr.Printf("http-server: failed to serve connection: %v\n", err)
 	}
 }

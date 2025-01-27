@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/open-control-systems/device-hub/components/core"
 	"github.com/open-control-systems/device-hub/components/status"
+	"github.com/open-control-systems/device-hub/components/system/syscore"
 )
 
 // PollDevice actively fetches telemetry and registration data.
@@ -117,7 +117,8 @@ func (d *PollDevice) validateTimestamp(js JSON) error {
 	}
 
 	if timestamp == -1 {
-		core.LogInf.Printf("poll-device: start syncing time for device: ID=%v\n", d.deviceID)
+		syscore.LogInf.Printf(
+			"poll-device: start syncing time for device: ID=%v\n", d.deviceID)
 
 		if err := d.timeSynchronizer.Synchronize(); err != nil {
 			return err
@@ -143,9 +144,9 @@ func (d *PollDevice) parseDeviceID(js JSON) error {
 	}
 
 	if d.deviceID == "" {
-		core.LogInf.Printf("poll-device: device ID received: %s\n", deviceID)
+		syscore.LogInf.Printf("poll-device: device ID received: %s\n", deviceID)
 	} else if d.deviceID != deviceID {
-		core.LogInf.Printf("poll-device: device ID changed: cur=%s new=%s\n",
+		syscore.LogInf.Printf("poll-device: device ID changed: cur=%s new=%s\n",
 			d.deviceID, deviceID)
 	}
 

@@ -1,7 +1,6 @@
 package syscore
 
 import (
-	"github.com/open-control-systems/device-hub/components/core"
 	"github.com/open-control-systems/device-hub/components/status"
 )
 
@@ -43,7 +42,7 @@ func (s *SystemClockSynchronizer) Synchronize() error {
 	}
 
 	if localTs < remoteLastTs {
-		core.LogWrn.Printf(
+		LogWrn.Printf(
 			"system-clock-synchronizer: unable to sync: last remote is ahead of local: "+
 				"local=%v remote=%v", localTs, remoteLastTs)
 
@@ -56,7 +55,7 @@ func (s *SystemClockSynchronizer) Synchronize() error {
 	}
 
 	if localTs < remoteCurrTs {
-		core.LogWrn.Printf(
+		LogWrn.Printf(
 			"system-clock-synchronizer: unable to sync: current remote is ahead of local: "+
 				"local=%v remote=%v", localTs, remoteCurrTs)
 
@@ -67,7 +66,7 @@ func (s *SystemClockSynchronizer) Synchronize() error {
 		return err
 	}
 
-	core.LogInf.Printf(
+	LogInf.Printf(
 		"system-clock-synchronizer: time synced: local=%v remote_last=%v remote_curr=%v\n",
 		localTs, remoteLastTs, remoteCurrTs)
 

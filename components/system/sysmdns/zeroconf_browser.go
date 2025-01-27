@@ -6,8 +6,7 @@ import (
 	"time"
 
 	"github.com/grandcat/zeroconf"
-
-	"github.com/open-control-systems/device-hub/components/core"
+	"github.com/open-control-systems/device-hub/components/system/syscore"
 )
 
 // ZeroconfBrowserParams represents various options for zeroconf mDNS browser.
@@ -78,14 +77,14 @@ func (b *ZeroconfBrowser) Run() error {
 	}
 }
 
-// Close closes the browser resources.
-func (*ZeroconfBrowser) Close() error {
+// Stop closes the browser resources.
+func (*ZeroconfBrowser) Stop() error {
 	return nil
 }
 
 // HandleError handles browsing errors.
 func (b *ZeroconfBrowser) HandleError(err error) {
-	core.LogErr.Printf("mdns-zeroconf-browser: browsing failed: service=%s domain=%s: %v\n",
+	syscore.LogErr.Printf("mdns-zeroconf-browser: browsing failed: service=%s domain=%s: %v\n",
 		b.params.Service, b.params.Domain, err)
 }
 
@@ -93,7 +92,7 @@ func (b *ZeroconfBrowser) handleEntry(entry *zeroconf.ServiceEntry) {
 	service := &zeroconfService{entry: entry}
 
 	if err := b.handler.HandleService(service); err != nil {
-		core.LogWrn.Printf("mdns-zeroconf-browser: failed to handle service: service=%s"+
+		syscore.LogWrn.Printf("mdns-zeroconf-browser: failed to handle service: service=%s"+
 			" domain=%s err=%v\n", b.params.Service, b.params.Domain, err)
 	}
 }

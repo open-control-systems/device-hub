@@ -5,8 +5,8 @@ import (
 	"net"
 	"sync"
 
-	"github.com/open-control-systems/device-hub/components/core"
 	"github.com/open-control-systems/device-hub/components/status"
+	"github.com/open-control-systems/device-hub/components/system/syscore"
 )
 
 // ResolveStore caches the result of host resolving.
@@ -41,12 +41,12 @@ func (s *ResolveStore) HandleResolve(host string, addr net.Addr) {
 
 	ra, ok := s.resolvedAddrs[host]
 	if !ok {
-		core.LogInf.Printf("resolve-store: addr resolved: host=%s: addr=%s\n",
+		syscore.LogInf.Printf("resolve-store: addr resolved: host=%s: addr=%s\n",
 			host, addr)
 
 		s.resolvedAddrs[host] = addr
 	} else if ra.String() != addr.String() {
-		core.LogInf.Printf("resolve-store: addr changed for host=%s: cur=%s new=%s\n",
+		syscore.LogInf.Printf("resolve-store: addr changed for host=%s: cur=%s new=%s\n",
 			host, ra, addr)
 
 		s.resolvedAddrs[host] = addr

@@ -4,7 +4,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/open-control-systems/device-hub/components/core"
 	"github.com/open-control-systems/device-hub/components/system/syscore"
 	"github.com/open-control-systems/device-hub/components/system/syssched"
 )
@@ -86,7 +85,7 @@ func (m *StoreAliveMonitor) GetDesc() []StoreItem {
 
 // HandleError handles Run() error.
 func (*StoreAliveMonitor) HandleError(err error) {
-	core.LogErr.Printf("store-alive-monitor: failed to verify inactive devices: %v\n", err)
+	syscore.LogErr.Printf("store-alive-monitor: failed to verify inactive devices: %v\n", err)
 }
 
 // Run verifies if added devices are still alive.
@@ -102,7 +101,7 @@ func (m *StoreAliveMonitor) Run() error {
 			continue
 		}
 
-		core.LogWrn.Printf("store-alive-monitor: removing inactive device:"+
+		syscore.LogWrn.Printf("store-alive-monitor: removing inactive device:"+
 			" uri=%s cur_inactive=%s max_inactive=%s\n", uri, diff, m.maxInactiveInterval)
 
 		if err := m.store.Remove(uri); err != nil {
