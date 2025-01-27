@@ -1,3 +1,15 @@
+## Inactive Device Monitoring
+
+The device-hub can automatically monitor the inactivity of added devices. If the device is inactive for the configured interval, it is automatically removed from the device-hub.
+
+For more advanced configuration, see the following device-hub CLI options:
+
+```
+--device-monitor-inactive-disable                  Disable device inactivity monitoring
+--device-monitor-inactive-max-interval string      How long it's allowed for a device to be inactive (default "2m")
+--device-monitor-inactive-update-interval string   How often to check for a device inactivity (default "10s")
+```
+
 ## mDNS Auto Discovery
 
 The device-hub can automatically add devices based on the mDNS txt records.
