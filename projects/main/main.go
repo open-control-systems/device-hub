@@ -67,19 +67,6 @@ func (p *appPipeline) start(ec *envContext) error {
 		syscall.SIGTERM,
 		syscall.SIGQUIT)
 	defer cancelFunc()
-
-	serverPipeline, err := piphttp.NewServerPipeline(
-		p.closer,
-		htcore.ServerParams{
-			Port: ec.port,
-		},
-	)
-	if err != nil {
-		return err
-	}
-	p.closer.Add("server-pipeline", serverPipeline)
-	p.starter.Add(serverPipeline)
-
 	storagePipeline := stinfluxdb.NewPipeline(appContext, ec.dbParams)
 	p.closer.Add("storage-influxdb-pipeline", storagePipeline)
 	p.starter.Add(storagePipeline)
@@ -236,8 +223,19 @@ func (p *appPipeline) start(ec *envContext) error {
 		fanoutServiceHandler.Add(storeMdnsHandler)
 	}
 
+	mux := http.NewServeMux()
+
+	server, err := htcore.NewServer(mux, htcore.ServerParams{
+		Port: ec.port,
+	})
+	if err != nil {
+		return err
+	}
+	p.closer.Add("http-server", server)
+	p.starter.Add(server)
+
 	registerHTTPRoutes(
-		serverPipeline.GetServeMux(),
+		mux,
 		// Time valid since 2024/12/03.
 		piphttp.NewSystemTimeHandler(p.systemClock, time.Unix(1733215816, 0)),
 		pipdevice.NewStoreHTTPHandler(deviceStore),
