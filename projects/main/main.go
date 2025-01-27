@@ -384,15 +384,13 @@ func main() {
 	cmd.Flags().StringVar(
 		&envContext.mdns.browseInterval,
 		"mdns-browse-interval", "1m",
-		"How often to perform mDNS lookup over local network, in form of: 1h35m10s"+
-			" (valid time units are s, m, h)",
+		"How often to perform mDNS lookup over local network",
 	)
 
 	cmd.Flags().StringVar(
 		&envContext.mdns.browseTimeout,
 		"mdns-browse-timeout", "30s",
-		"How long to perform a single mDNS lookup over local network, in form of: 1h35m10s"+
-			" (valid time units are s, m, h)",
+		"How long to perform a single mDNS lookup over local network",
 	)
 
 	cmd.Flags().BoolVar(
