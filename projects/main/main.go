@@ -16,8 +16,8 @@ import (
 
 	"github.com/open-control-systems/device-hub/components/core"
 	"github.com/open-control-systems/device-hub/components/http/htcore"
+	"github.com/open-control-systems/device-hub/components/http/hthandler"
 	"github.com/open-control-systems/device-hub/components/pipeline/pipdevice"
-	"github.com/open-control-systems/device-hub/components/pipeline/piphttp"
 	"github.com/open-control-systems/device-hub/components/storage/stcore"
 	"github.com/open-control-systems/device-hub/components/storage/stinfluxdb"
 	"github.com/open-control-systems/device-hub/components/system/syscore"
@@ -237,7 +237,7 @@ func (p *appPipeline) start(ec *envContext) error {
 	registerHTTPRoutes(
 		mux,
 		// Time valid since 2024/12/03.
-		piphttp.NewSystemTimeHandler(p.systemClock, time.Unix(1733215816, 0)),
+		hthandler.NewSystemTimeHandler(p.systemClock, time.Unix(1733215816, 0)),
 		pipdevice.NewStoreHTTPHandler(deviceStore),
 	)
 
@@ -254,7 +254,7 @@ func (p *appPipeline) close() error {
 
 func registerHTTPRoutes(
 	mux *http.ServeMux,
-	timeHandler *piphttp.SystemTimeHandler,
+	timeHandler http.Handler,
 	storeHTTPHandler *pipdevice.StoreHTTPHandler,
 ) {
 	mux.Handle("/api/v1/system/time", timeHandler)
