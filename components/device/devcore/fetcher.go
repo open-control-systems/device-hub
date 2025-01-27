@@ -1,4 +1,4 @@
-package device
+package devcore
 
 // Fetcher fetches the device data from the arbitrary source.
 type Fetcher interface {

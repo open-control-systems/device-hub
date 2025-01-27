@@ -15,9 +15,9 @@ import (
 	"go.etcd.io/bbolt"
 
 	"github.com/open-control-systems/device-hub/components/core"
+	"github.com/open-control-systems/device-hub/components/device/devstore"
 	"github.com/open-control-systems/device-hub/components/http/htcore"
 	"github.com/open-control-systems/device-hub/components/http/hthandler"
-	"github.com/open-control-systems/device-hub/components/pipeline/pipdevice"
 	"github.com/open-control-systems/device-hub/components/storage/stcore"
 	"github.com/open-control-systems/device-hub/components/storage/stinfluxdb"
 	"github.com/open-control-systems/device-hub/components/system/syscore"
@@ -148,11 +148,11 @@ func (p *appPipeline) start(ec *envContext) error {
 		return errors.New("HTTP device fetch timeout can't be less than 1ms")
 	}
 
-	cacheStoreParams := pipdevice.CacheStoreParams{}
+	cacheStoreParams := devstore.CacheStoreParams{}
 	cacheStoreParams.HTTP.FetchInterval = fetchInterval
 	cacheStoreParams.HTTP.FetchTimeout = fetchTimeout
 
-	cacheStore := pipdevice.NewCacheStore(
+	cacheStore := devstore.NewCacheStore(
 		appContext,
 		p.systemClock,
 		storagePipeline.GetSystemClock(),
@@ -164,9 +164,9 @@ func (p *appPipeline) start(ec *envContext) error {
 	p.closer.Add("device-cache-store", cacheStore)
 	p.starter.Add(cacheStore)
 
-	var deviceStore pipdevice.Store
+	var deviceStore devstore.Store
 
-	deviceStore = pipdevice.NewStoreAwakener(mdnsBrowserRunner, cacheStore)
+	deviceStore = devstore.NewStoreAwakener(mdnsBrowserRunner, cacheStore)
 
 	if !ec.device.monitor.inactive.disable {
 		inactiveMaxInterval, err :=
@@ -198,7 +198,7 @@ func (p *appPipeline) start(ec *envContext) error {
 				" less than 1ms")
 		}
 
-		aliveMonitor := pipdevice.NewStoreAliveMonitor(
+		aliveMonitor := devstore.NewStoreAliveMonitor(
 			&syscore.LocalMonotonicClock{},
 			deviceStore,
 			inactiveMaxInterval,
@@ -219,7 +219,7 @@ func (p *appPipeline) start(ec *envContext) error {
 	}
 
 	if !ec.mdns.disableAutodiscovery {
-		storeMdnsHandler := pipdevice.NewStoreMdnsHandler(deviceStore)
+		storeMdnsHandler := devstore.NewStoreMdnsHandler(deviceStore)
 		fanoutServiceHandler.Add(storeMdnsHandler)
 	}
 
@@ -238,7 +238,7 @@ func (p *appPipeline) start(ec *envContext) error {
 		mux,
 		// Time valid since 2024/12/03.
 		hthandler.NewSystemTimeHandler(p.systemClock, time.Unix(1733215816, 0)),
-		pipdevice.NewStoreHTTPHandler(deviceStore),
+		devstore.NewStoreHTTPHandler(deviceStore),
 	)
 
 	p.starter.Start()
@@ -255,7 +255,7 @@ func (p *appPipeline) close() error {
 func registerHTTPRoutes(
 	mux *http.ServeMux,
 	timeHandler http.Handler,
-	storeHTTPHandler *pipdevice.StoreHTTPHandler,
+	storeHTTPHandler *devstore.StoreHTTPHandler,
 ) {
 	mux.Handle("/api/v1/system/time", timeHandler)
 

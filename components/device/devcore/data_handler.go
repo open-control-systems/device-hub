@@ -1,4 +1,4 @@
-package device
+package devcore
 
 // JSON device data.
 type JSON = map[string]any

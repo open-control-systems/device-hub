@@ -1,4 +1,4 @@
-package pipdevice
+package devstore
 
 import "github.com/open-control-systems/device-hub/components/core"
 

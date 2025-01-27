@@ -1,4 +1,4 @@
-package pipdevice
+package devstore
 
 import (
 	"context"
@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/open-control-systems/device-hub/components/core"
-	"github.com/open-control-systems/device-hub/components/device"
+	"github.com/open-control-systems/device-hub/components/device/devcore"
 	"github.com/open-control-systems/device-hub/components/http/htcore"
 	"github.com/open-control-systems/device-hub/components/status"
 	"github.com/open-control-systems/device-hub/components/storage/stcore"
@@ -37,7 +37,7 @@ type CacheStore struct {
 	ctx             context.Context
 	localClock      syscore.SystemClock
 	remoteLastClock syscore.SystemClock
-	dataHandler     device.DataHandler
+	dataHandler     devcore.DataHandler
 	resolveStore    *sysnet.ResolveStore
 	aliveMonitor    AliveMonitor
 	params          CacheStoreParams
@@ -61,7 +61,7 @@ func NewCacheStore(
 	ctx context.Context,
 	localClock syscore.SystemClock,
 	remoteLastClock syscore.SystemClock,
-	dataHandler device.DataHandler,
+	dataHandler devcore.DataHandler,
 	db stcore.DB,
 	resolveStore *sysnet.ResolveStore,
 	params CacheStoreParams,
@@ -259,7 +259,7 @@ func (s *CacheStore) makeNode(uri string, desc string, now time.Time) (*storeNod
 	ctx, cancelFunc := context.WithCancel(s.ctx)
 	closer := &core.FanoutCloser{}
 
-	holder := device.NewIDHolder(s.dataHandler)
+	holder := devcore.NewIDHolder(s.dataHandler)
 
 	runner := syssched.NewAsyncTaskRunner(
 		ctx,
@@ -293,7 +293,7 @@ func (s *CacheStore) makeNode(uri string, desc string, now time.Time) (*storeNod
 func (s *CacheStore) newHTTPDevice(
 	ctx context.Context,
 	closer *core.FanoutCloser,
-	dataHandler device.DataHandler,
+	dataHandler devcore.DataHandler,
 	localClock syscore.SystemClock,
 	remoteLastClock syscore.SystemClock,
 	uri string,
@@ -310,7 +310,7 @@ func (s *CacheStore) newHTTPDevice(
 	clockSynchronizer := syscore.NewSystemClockSynchronizer(
 		localClock, remoteLastClock, remoteCurrClock)
 
-	task := device.NewPollDevice(
+	task := devcore.NewPollDevice(
 		htcore.NewURLFetcher(
 			ctx,
 			s.makeHTTPClient(closer, uri, host, desc),
@@ -384,7 +384,7 @@ type storeNode struct {
 	createdAt  string
 	cancelFunc context.CancelFunc
 	closer     *core.FanoutCloser
-	holder     *device.IDHolder
+	holder     *devcore.IDHolder
 	runner     *syssched.AsyncTaskRunner
 }
 

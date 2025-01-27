@@ -1,4 +1,4 @@
-package device
+package devcore
 
 import (
 	"encoding/json"

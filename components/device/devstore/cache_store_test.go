@@ -1,4 +1,4 @@
-package pipdevice
+package devstore
 
 import (
 	"context"
@@ -9,11 +9,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/open-control-systems/device-hub/components/device"
+	"github.com/stretchr/testify/require"
+
+	"github.com/open-control-systems/device-hub/components/device/devcore"
 	"github.com/open-control-systems/device-hub/components/status"
 	"github.com/open-control-systems/device-hub/components/storage/stcore"
 	"github.com/open-control-systems/device-hub/components/system/sysnet"
-	"github.com/stretchr/testify/require"
 )
 
 type testCacheStoreDB struct {
@@ -71,18 +72,18 @@ func (*testCacheStoreDB) Close() error {
 }
 
 type testCacheStoreDataHandler struct {
-	telemetry    chan device.JSON
-	registration chan device.JSON
+	telemetry    chan devcore.JSON
+	registration chan devcore.JSON
 }
 
 func newTestCacheStoreDataHandler() *testCacheStoreDataHandler {
 	return &testCacheStoreDataHandler{
-		telemetry:    make(chan device.JSON),
-		registration: make(chan device.JSON),
+		telemetry:    make(chan devcore.JSON),
+		registration: make(chan devcore.JSON),
 	}
 }
 
-func (h *testCacheStoreDataHandler) HandleTelemetry(_ string, js device.JSON) error {
+func (h *testCacheStoreDataHandler) HandleTelemetry(_ string, js devcore.JSON) error {
 	select {
 	case h.telemetry <- maps.Clone(js):
 	default:
@@ -91,7 +92,7 @@ func (h *testCacheStoreDataHandler) HandleTelemetry(_ string, js device.JSON) er
 	return nil
 }
 
-func (h *testCacheStoreDataHandler) HandleRegistration(_ string, js device.JSON) error {
+func (h *testCacheStoreDataHandler) HandleRegistration(_ string, js devcore.JSON) error {
 	select {
 	case h.registration <- maps.Clone(js):
 	default:
@@ -115,10 +116,10 @@ func (c *testCacheStoreClock) GetTimestamp() (int64, error) {
 }
 
 type testCacheStoreHTTPDataHandler struct {
-	js device.JSON
+	js devcore.JSON
 }
 
-func newTestCacheStoreHTTPDataHandler(data device.JSON) *testCacheStoreHTTPDataHandler {
+func newTestCacheStoreHTTPDataHandler(data devcore.JSON) *testCacheStoreHTTPDataHandler {
 	return &testCacheStoreHTTPDataHandler{
 		js: maps.Clone(data),
 	}
@@ -289,7 +290,7 @@ func TestCacheStoreAddRemoveResourceNoResponse(t *testing.T) {
 		uri  string
 		desc string
 	}{
-		{"http://device.example.com/api/v10", "foo-bar-baz"},
+		{"http://devcore.example.com/api/v10", "foo-bar-baz"},
 		{"http://192.1.2.3:8787/api/v3", "foo-bar-baz"},
 		{"https://192.1.2.3:1234", "foo-bar-baz"},
 		{"http://bonsai-growlab.local/api/v1", "foo-bar-baz"},
@@ -347,11 +348,11 @@ func TestCacheStoreAddRemove(t *testing.T) {
 
 	deviceID := "0xABCD"
 
-	telemetryData := make(device.JSON)
+	telemetryData := make(devcore.JSON)
 	telemetryData["timestamp"] = float64(123)
 	telemetryData["temperature"] = float64(123.222)
 
-	registrationData := make(device.JSON)
+	registrationData := make(devcore.JSON)
 	registrationData["timestamp"] = float64(123)
 	registrationData["device_id"] = deviceID
 
@@ -374,7 +375,7 @@ func TestCacheStoreAddRemove(t *testing.T) {
 func TestCacheStoreRestore(t *testing.T) {
 	db := newTestCacheStoreDB()
 
-	makeStore := func(d stcore.DB, h device.DataHandler) *CacheStore {
+	makeStore := func(d stcore.DB, h devcore.DataHandler) *CacheStore {
 		clock := &testCacheStoreClock{}
 
 		storeParams := CacheStoreParams{}
@@ -399,11 +400,11 @@ func TestCacheStoreRestore(t *testing.T) {
 
 	deviceID := "0xABCD"
 
-	telemetryData := make(device.JSON)
+	telemetryData := make(devcore.JSON)
 	telemetryData["timestamp"] = float64(123)
 	telemetryData["temperature"] = float64(123.222)
 
-	registrationData := make(device.JSON)
+	registrationData := make(devcore.JSON)
 	registrationData["timestamp"] = float64(123)
 	registrationData["device_id"] = deviceID
 
