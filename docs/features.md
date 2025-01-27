@@ -1,4 +1,4 @@
-## mDNS auto-discovery
+## mDNS Auto Discovery
 
 The device-hub can automatically add devices based on the mDNS txt records.
 
