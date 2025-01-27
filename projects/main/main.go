@@ -37,6 +37,14 @@ type envContext struct {
 			fetchTimeout  string
 			fetchInterval string
 		}
+
+		monitor struct {
+			inactive struct {
+				disable        bool
+				maxInterval    string
+				updateInterval string
+			}
+		}
 	}
 
 	mdns struct {
@@ -169,7 +177,59 @@ func (p *appPipeline) start(ec *envContext) error {
 	p.closer.Add("device-cache-store", cacheStore)
 	p.starter.Add(cacheStore)
 
-	deviceStore := pipdevice.NewStoreAwakener(mdnsBrowserRunner, cacheStore)
+	var deviceStore pipdevice.Store
+
+	deviceStore = pipdevice.NewStoreAwakener(mdnsBrowserRunner, cacheStore)
+
+	if !ec.device.monitor.inactive.disable {
+		inactiveMaxInterval, err :=
+			time.ParseDuration(ec.device.monitor.inactive.maxInterval)
+		if err != nil {
+			return err
+		}
+
+		if inactiveMaxInterval < time.Millisecond {
+			return errors.New("device-monitor-inactive-max-interval can't be" +
+				" less than 1ms")
+		}
+
+		if !ec.mdns.disableAutodiscovery {
+			if inactiveMaxInterval < mdnsBrowseInterval {
+				return errors.New("device-monitor-inactive-max-interval can't be" +
+					" less than mdns-browse-interval")
+			}
+		}
+
+		inactiveUpdateInterval, err :=
+			time.ParseDuration(ec.device.monitor.inactive.updateInterval)
+		if err != nil {
+			return err
+		}
+
+		if inactiveUpdateInterval < time.Millisecond {
+			return errors.New("device-monitor-inactive-update-interval can't be" +
+				" less than 1ms")
+		}
+
+		aliveMonitor := pipdevice.NewStoreAliveMonitor(
+			&syscore.LocalMonotonicClock{},
+			deviceStore,
+			inactiveMaxInterval,
+		)
+		cacheStore.SetAliveMonitor(aliveMonitor)
+
+		deviceStore = aliveMonitor
+
+		aliveMonitorRunner := syssched.NewAsyncTaskRunner(
+			appContext,
+			aliveMonitor,
+			aliveMonitor,
+			inactiveUpdateInterval,
+		)
+
+		p.closer.Add("device-alive-monitor-runner", aliveMonitorRunner)
+		p.starter.Add(aliveMonitorRunner)
+	}
 
 	if !ec.mdns.disableAutodiscovery {
 		storeMdnsHandler := pipdevice.NewStoreMdnsHandler(deviceStore)
@@ -301,6 +361,24 @@ func main() {
 		&envContext.device.HTTP.fetchTimeout,
 		"device-http-fetch-timeout", "5s",
 		"HTTP device data fetch timeout",
+	)
+
+	cmd.Flags().StringVar(
+		&envContext.device.monitor.inactive.maxInterval,
+		"device-monitor-inactive-max-interval", "2m",
+		"How long it's allowed for a device to be inactive",
+	)
+
+	cmd.Flags().StringVar(
+		&envContext.device.monitor.inactive.updateInterval,
+		"device-monitor-inactive-update-interval", "10s",
+		"How often to check for a device inactivity",
+	)
+
+	cmd.Flags().BoolVar(
+		&envContext.device.monitor.inactive.disable,
+		"device-monitor-inactive-disable", false,
+		"Disable device inactivity monitoring",
 	)
 
 	cmd.Flags().StringVar(

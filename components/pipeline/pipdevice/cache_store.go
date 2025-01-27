@@ -40,6 +40,7 @@ type CacheStore struct {
 	remoteLastClock syscore.SystemClock
 	dataHandler     device.DataHandler
 	resolveStore    *sysnet.ResolveStore
+	aliveMonitor    AliveMonitor
 	params          CacheStoreParams
 
 	mu    sync.Mutex
@@ -82,6 +83,11 @@ func NewCacheStore(
 	}
 
 	return s
+}
+
+// SetAliveMonitor sets the device inactivity monitor.
+func (s *CacheStore) SetAliveMonitor(monitor AliveMonitor) {
+	s.aliveMonitor = monitor
 }
 
 // Start starts data processing for cached devices.
@@ -291,36 +297,44 @@ func (s *CacheStore) newHTTPDevice(
 	dataHandler device.DataHandler,
 	localClock syscore.SystemClock,
 	remoteLastClock syscore.SystemClock,
-	baseURL string,
+	uri string,
 	host string,
 	desc string,
 ) syssched.Task {
 	remoteCurrClock := piphttp.NewSystemClock(
 		ctx,
-		s.makeHTTPClient(closer, baseURL, host, desc),
-		baseURL+"/system/time",
+		s.makeHTTPClient(closer, uri, host, desc),
+		uri+"/system/time",
 		s.params.HTTP.FetchTimeout,
 	)
 
 	clockSynchronizer := syscore.NewSystemClockSynchronizer(
 		localClock, remoteLastClock, remoteCurrClock)
 
-	return device.NewPollDevice(
+	task := device.NewPollDevice(
 		htcore.NewURLFetcher(
 			ctx,
-			s.makeHTTPClient(closer, baseURL, host, desc),
-			baseURL+"/registration",
+			s.makeHTTPClient(closer, uri, host, desc),
+			uri+"/registration",
 			s.params.HTTP.FetchTimeout,
 		),
 		htcore.NewURLFetcher(
 			ctx,
-			s.makeHTTPClient(closer, baseURL, host, desc),
-			baseURL+"/telemetry",
+			s.makeHTTPClient(closer, uri, host, desc),
+			uri+"/telemetry",
 			s.params.HTTP.FetchTimeout,
 		),
 		dataHandler,
 		clockSynchronizer,
 	)
+
+	if s.aliveMonitor != nil {
+		notifier := s.aliveMonitor.Monitor(uri)
+
+		return syssched.NewTaskAliveNotifier(task, notifier)
+	}
+
+	return task
 }
 
 func (s *CacheStore) makeHTTPClient(
