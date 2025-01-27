@@ -11,7 +11,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/open-control-systems/device-hub/components/core"
 	"github.com/open-control-systems/device-hub/components/device/devcore"
 	"github.com/open-control-systems/device-hub/components/http/htcore"
 	"github.com/open-control-systems/device-hub/components/status"
@@ -78,7 +77,7 @@ func NewCacheStore(
 	}
 
 	if err := s.restoreNodes(); err != nil {
-		core.LogErr.Printf("cache-store: failed to restore nodes: %v\n", err)
+		syscore.LogErr.Printf("cache-store: failed to restore nodes: %v\n", err)
 	}
 
 	return s
@@ -99,14 +98,14 @@ func (s *CacheStore) Start() {
 	}
 }
 
-// Close stops data processing for added devices.
-func (s *CacheStore) Close() error {
+// Stop stops data processing for added devices.
+func (s *CacheStore) Stop() error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	for _, node := range s.nodes {
-		if err := node.close(); err != nil {
-			core.LogErr.Printf("cache-store: failed to close device: uri=%s err=%v\n",
+		if err := node.stop(); err != nil {
+			syscore.LogErr.Printf("cache-store: failed to stop device: uri=%s err=%v\n",
 				node.uri, err)
 		}
 	}
@@ -170,7 +169,7 @@ func (s *CacheStore) Add(uri string, desc string) error {
 
 	s.nodes[key] = node
 
-	core.LogInf.Printf("cache-store: device added: uri=%s desc=%s\n", uri, desc)
+	syscore.LogInf.Printf("cache-store: device added: uri=%s desc=%s\n", uri, desc)
 
 	node.start()
 
@@ -193,13 +192,13 @@ func (s *CacheStore) Remove(uri string) error {
 		return err
 	}
 
-	if err := node.close(); err != nil {
+	if err := node.stop(); err != nil {
 		return fmt.Errorf("failed to stop device: uri=%s err=%v", uri, err)
 	}
 
 	delete(s.nodes, key)
 
-	core.LogInf.Printf("cache-store: device removed: uri=%s\n", uri)
+	syscore.LogInf.Printf("cache-store: device removed: uri=%s\n", uri)
 
 	return nil
 }
@@ -238,7 +237,7 @@ func (s *CacheStore) restoreNodes() error {
 
 		s.nodes[key] = node
 
-		core.LogInf.Printf("cache-store: device restored: uri=%s desc=%s\n",
+		syscore.LogInf.Printf("cache-store: device restored: uri=%s desc=%s\n",
 			item.URI, item.Desc)
 
 		return nil
@@ -257,7 +256,7 @@ func (s *CacheStore) makeNode(uri string, desc string, now time.Time) (*storeNod
 	}
 
 	ctx, cancelFunc := context.WithCancel(s.ctx)
-	closer := &core.FanoutCloser{}
+	stopper := &syssched.FanoutStopper{}
 
 	holder := devcore.NewIDHolder(s.dataHandler)
 
@@ -265,7 +264,7 @@ func (s *CacheStore) makeNode(uri string, desc string, now time.Time) (*storeNod
 		ctx,
 		s.newHTTPDevice(
 			ctx,
-			closer,
+			stopper,
 			holder,
 			s.localClock,
 			s.remoteLastClock,
@@ -277,14 +276,14 @@ func (s *CacheStore) makeNode(uri string, desc string, now time.Time) (*storeNod
 		s.params.HTTP.FetchInterval,
 	)
 
-	closer.Add(desc, runner)
+	stopper.Add(desc, runner)
 
 	return &storeNode{
 		uri:        uri,
 		desc:       desc,
 		createdAt:  now.Format(time.RFC1123),
 		cancelFunc: cancelFunc,
-		closer:     closer,
+		stopper:    stopper,
 		holder:     holder,
 		runner:     runner,
 	}, nil
@@ -292,7 +291,7 @@ func (s *CacheStore) makeNode(uri string, desc string, now time.Time) (*storeNod
 
 func (s *CacheStore) newHTTPDevice(
 	ctx context.Context,
-	closer *core.FanoutCloser,
+	stopper *syssched.FanoutStopper,
 	dataHandler devcore.DataHandler,
 	localClock syscore.SystemClock,
 	remoteLastClock syscore.SystemClock,
@@ -302,7 +301,7 @@ func (s *CacheStore) newHTTPDevice(
 ) syssched.Task {
 	remoteCurrClock := htcore.NewSystemClock(
 		ctx,
-		s.makeHTTPClient(closer, uri, host, desc),
+		s.makeHTTPClient(stopper, uri, host, desc),
 		uri+"/system/time",
 		s.params.HTTP.FetchTimeout,
 	)
@@ -313,13 +312,13 @@ func (s *CacheStore) newHTTPDevice(
 	task := devcore.NewPollDevice(
 		htcore.NewURLFetcher(
 			ctx,
-			s.makeHTTPClient(closer, uri, host, desc),
+			s.makeHTTPClient(stopper, uri, host, desc),
 			uri+"/registration",
 			s.params.HTTP.FetchTimeout,
 		),
 		htcore.NewURLFetcher(
 			ctx,
-			s.makeHTTPClient(closer, uri, host, desc),
+			s.makeHTTPClient(stopper, uri, host, desc),
 			uri+"/telemetry",
 			s.params.HTTP.FetchTimeout,
 		),
@@ -337,7 +336,7 @@ func (s *CacheStore) newHTTPDevice(
 }
 
 func (s *CacheStore) makeHTTPClient(
-	closer *core.FanoutCloser,
+	stopper *syssched.FanoutStopper,
 	uri string,
 	host string,
 	desc string,
@@ -348,7 +347,7 @@ func (s *CacheStore) makeHTTPClient(
 
 	s.resolveStore.Add(host)
 
-	closer.Add("resolve-store-"+desc, core.FuncCloser(func() error {
+	stopper.Add("resolve-store-"+desc, syssched.FuncStopper(func() error {
 		s.resolveStore.Remove(host)
 
 		return nil
@@ -383,7 +382,7 @@ type storeNode struct {
 	desc       string
 	createdAt  string
 	cancelFunc context.CancelFunc
-	closer     *core.FanoutCloser
+	stopper    *syssched.FanoutStopper
 	holder     *devcore.IDHolder
 	runner     *syssched.AsyncTaskRunner
 }
@@ -392,10 +391,10 @@ func (s *storeNode) start() {
 	s.runner.Start()
 }
 
-func (s *storeNode) close() error {
+func (s *storeNode) stop() error {
 	s.cancelFunc()
 
-	return s.closer.Close()
+	return s.stopper.Stop()
 }
 
 func hashURI(uri string) string {

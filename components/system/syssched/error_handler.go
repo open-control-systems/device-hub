@@ -1,4 +1,4 @@
-package core
+package syssched
 
 // ErrorHandler handles errors.
 type ErrorHandler interface {

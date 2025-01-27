@@ -53,9 +53,9 @@ func (p *Pipeline) Start() {
 	go p.clock.run()
 }
 
-// Close stops writing data to the DB.
-func (p *Pipeline) Close() error {
+// Stop stops writing data to the DB.
+func (p *Pipeline) Stop() error {
 	p.dbClient.Close()
 
-	return p.clock.Close()
+	return p.clock.Stop()
 }

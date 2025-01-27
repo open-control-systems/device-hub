@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/influxdata/influxdb-client-go/v2/api"
-	"github.com/open-control-systems/device-hub/components/core"
 	"github.com/open-control-systems/device-hub/components/status"
+	"github.com/open-control-systems/device-hub/components/system/syscore"
 )
 
 type systemClock struct {
@@ -59,8 +59,8 @@ func (c *systemClock) run() {
 	}
 }
 
-// Close ends asynchronous time restoring.
-func (c *systemClock) Close() error {
+// Stop ends asynchronous time restoring.
+func (c *systemClock) Stop() error {
 	<-c.doneCh
 	return nil
 }
@@ -77,7 +77,7 @@ func (c *systemClock) SetTimestamp(timestamp int64) error {
 	if !c.restored {
 		c.restored = true
 
-		core.LogInf.Printf("influxdb-system-clock: skip timestamp restoring: value=%v\n",
+		syscore.LogInf.Printf("influxdb-system-clock: skip timestamp restoring: value=%v\n",
 			timestamp)
 	}
 
@@ -99,7 +99,8 @@ func (c *systemClock) GetTimestamp() (int64, error) {
 func (c *systemClock) tryRestoreTimestamp() bool {
 	timestamp, err := c.readTimestamp()
 	if err != nil {
-		core.LogErr.Printf("influxdb-system-clock: failed to restore timestamp: err=%v\n", err)
+		syscore.LogErr.Printf(
+			"influxdb-system-clock: failed to restore timestamp: err=%v\n", err)
 
 		return false
 	}
@@ -108,14 +109,14 @@ func (c *systemClock) tryRestoreTimestamp() bool {
 	defer c.mu.Unlock()
 
 	if c.restored {
-		core.LogInf.Printf(
+		syscore.LogInf.Printf(
 			"influxdb-system-clock: timestamp already restored: restored=%v persisted=%v\n",
 			c.timestamp, timestamp)
 	} else {
 		c.restored = true
 		c.timestamp = timestamp
 
-		core.LogInf.Printf("influxdb-system-clock: timestamp restored: value=%v\n",
+		syscore.LogInf.Printf("influxdb-system-clock: timestamp restored: value=%v\n",
 			c.timestamp)
 	}
 

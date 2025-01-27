@@ -1,6 +1,6 @@
 package sysmdns
 
-import "github.com/open-control-systems/device-hub/components/core"
+import "github.com/open-control-systems/device-hub/components/system/syscore"
 
 // FanoutServiceHandler notifies the underlying handlers about discovered mDNS service.
 type FanoutServiceHandler struct {
@@ -11,8 +11,8 @@ type FanoutServiceHandler struct {
 func (h *FanoutServiceHandler) HandleService(service Service) error {
 	for _, handler := range h.handlers {
 		if err := handler.HandleService(service); err != nil {
-			core.LogErr.Printf("fanout-service-handler: failed to handle mDNS service: %v\n",
-				err)
+			syscore.LogErr.Printf(
+				"fanout-service-handler: failed to handle mDNS service: %v\n", err)
 		}
 	}
 

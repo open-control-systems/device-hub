@@ -14,7 +14,6 @@ import (
 	"github.com/spf13/cobra"
 	"go.etcd.io/bbolt"
 
-	"github.com/open-control-systems/device-hub/components/core"
 	"github.com/open-control-systems/device-hub/components/device/devstore"
 	"github.com/open-control-systems/device-hub/components/http/htcore"
 	"github.com/open-control-systems/device-hub/components/http/hthandler"
@@ -55,7 +54,7 @@ type envContext struct {
 }
 
 type appPipeline struct {
-	closer      *core.FanoutCloser
+	stopper     *syssched.FanoutStopper
 	starter     *syssched.FanoutStarter
 	systemClock syscore.SystemClock
 }
@@ -68,7 +67,7 @@ func (p *appPipeline) start(ec *envContext) error {
 		syscall.SIGQUIT)
 	defer cancelFunc()
 	storagePipeline := stinfluxdb.NewPipeline(appContext, ec.dbParams)
-	p.closer.Add("storage-influxdb-pipeline", storagePipeline)
+	p.stopper.Add("storage-influxdb-pipeline", storagePipeline)
 	p.starter.Add(storagePipeline)
 
 	var db stcore.DB
@@ -82,7 +81,9 @@ func (p *appPipeline) start(ec *envContext) error {
 		if err != nil {
 			return err
 		}
-		p.closer.Add("bbolt-database", bboltDB)
+		p.stopper.Add("bbolt-database", syssched.FuncStopper(func() error {
+			return bboltDB.Close()
+		}))
 
 		db = stcore.NewBboltDBBucket(bboltDB, "device_bucket")
 	} else {
@@ -121,7 +122,7 @@ func (p *appPipeline) start(ec *envContext) error {
 			Timeout: mdnsBrowseTimeout,
 		},
 	)
-	p.closer.Add("mdns-zeroconf-browser", mdnsBrowser)
+	p.stopper.Add("mdns-zeroconf-browser", mdnsBrowser)
 
 	mdnsBrowserRunner := syssched.NewAsyncTaskRunner(
 		appContext,
@@ -129,7 +130,7 @@ func (p *appPipeline) start(ec *envContext) error {
 		mdnsBrowser,
 		mdnsBrowseInterval,
 	)
-	p.closer.Add("mdns-zeroconf-browser-runner", mdnsBrowserRunner)
+	p.stopper.Add("mdns-zeroconf-browser-runner", mdnsBrowserRunner)
 	p.starter.Add(mdnsBrowserRunner)
 
 	fetchInterval, err := time.ParseDuration(ec.device.HTTP.fetchInterval)
@@ -161,7 +162,7 @@ func (p *appPipeline) start(ec *envContext) error {
 		resolveStore,
 		cacheStoreParams,
 	)
-	p.closer.Add("device-cache-store", cacheStore)
+	p.stopper.Add("device-cache-store", cacheStore)
 	p.starter.Add(cacheStore)
 
 	var deviceStore devstore.Store
@@ -214,7 +215,7 @@ func (p *appPipeline) start(ec *envContext) error {
 			inactiveUpdateInterval,
 		)
 
-		p.closer.Add("device-alive-monitor-runner", aliveMonitorRunner)
+		p.stopper.Add("device-alive-monitor-runner", aliveMonitorRunner)
 		p.starter.Add(aliveMonitorRunner)
 	}
 
@@ -231,7 +232,7 @@ func (p *appPipeline) start(ec *envContext) error {
 	if err != nil {
 		return err
 	}
-	p.closer.Add("http-server", server)
+	p.stopper.Add("http-server", server)
 	p.starter.Add(server)
 
 	registerHTTPRoutes(
@@ -248,8 +249,8 @@ func (p *appPipeline) start(ec *envContext) error {
 	return nil
 }
 
-func (p *appPipeline) close() error {
-	return p.closer.Close()
+func (p *appPipeline) stop() error {
+	return p.stopper.Stop()
 }
 
 func registerHTTPRoutes(
@@ -267,7 +268,7 @@ func registerHTTPRoutes(
 func newAppPipeline() *appPipeline {
 	return &appPipeline{
 		systemClock: &syscore.LocalSystemClock{},
-		closer:      &core.FanoutCloser{},
+		stopper:     &syssched.FanoutStopper{},
 		starter:     &syssched.FanoutStarter{},
 	}
 }
@@ -300,7 +301,7 @@ func prepareEnvironment(ec *envContext) error {
 	if ec.logPath == "" {
 		return fmt.Errorf("log path is required")
 	}
-	if err := core.SetLogFile(ec.logPath); err != nil {
+	if err := syscore.SetLogFile(ec.logPath); err != nil {
 		return err
 	}
 
@@ -325,7 +326,7 @@ func main() {
 				return err
 			}
 
-			return appPipeline.close()
+			return appPipeline.stop()
 		},
 	}
 
