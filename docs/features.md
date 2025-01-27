@@ -43,7 +43,7 @@ avahi-browse -r _http._tcp
 "autodiscovery_desc=Bonsai GrowLab Firmware" "autodiscovery_mode=1"]
 ```
 
-The device can now be added to the device-hub automatically. For more advanced configuration, see the device-hub CLI options:
+The device can now be added to the device-hub automatically. For more advanced configuration, see the following device-hub CLI options:
 
 ```
 --mdns-autodiscovery-disable                       Disable automatic device discovery on the local network
