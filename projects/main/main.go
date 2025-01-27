@@ -259,15 +259,9 @@ func registerHTTPRoutes(
 ) {
 	mux.Handle("/api/v1/system/time", timeHandler)
 
-	mux.HandleFunc("/api/v1/device/add", func(w http.ResponseWriter, r *http.Request) {
-		storeHTTPHandler.HandleAdd(w, r)
-	})
-	mux.HandleFunc("/api/v1/device/remove", func(w http.ResponseWriter, r *http.Request) {
-		storeHTTPHandler.HandleRemove(w, r)
-	})
-	mux.HandleFunc("/api/v1/device/list", func(w http.ResponseWriter, r *http.Request) {
-		storeHTTPHandler.HandleList(w, r)
-	})
+	mux.HandleFunc("/api/v1/device/add", storeHTTPHandler.HandleAdd)
+	mux.HandleFunc("/api/v1/device/remove", storeHTTPHandler.HandleRemove)
+	mux.HandleFunc("/api/v1/device/list", storeHTTPHandler.HandleList)
 }
 
 func newAppPipeline() *appPipeline {
