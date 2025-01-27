@@ -14,7 +14,6 @@ import (
 	"github.com/open-control-systems/device-hub/components/core"
 	"github.com/open-control-systems/device-hub/components/device"
 	"github.com/open-control-systems/device-hub/components/http/htcore"
-	"github.com/open-control-systems/device-hub/components/pipeline/piphttp"
 	"github.com/open-control-systems/device-hub/components/status"
 	"github.com/open-control-systems/device-hub/components/storage/stcore"
 	"github.com/open-control-systems/device-hub/components/system/syscore"
@@ -301,7 +300,7 @@ func (s *CacheStore) newHTTPDevice(
 	host string,
 	desc string,
 ) syssched.Task {
-	remoteCurrClock := piphttp.NewSystemClock(
+	remoteCurrClock := htcore.NewSystemClock(
 		ctx,
 		s.makeHTTPClient(closer, uri, host, desc),
 		uri+"/system/time",

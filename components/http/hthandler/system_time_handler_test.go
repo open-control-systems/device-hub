@@ -1,4 +1,4 @@
-package piphttp
+package hthandler
 
 import (
 	"context"
@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/open-control-systems/device-hub/components/http/htcore"
-	"github.com/open-control-systems/device-hub/components/http/hthandler"
 	"github.com/stretchr/testify/require"
+
+	"github.com/open-control-systems/device-hub/components/http/htcore"
 )
 
 type testClock struct {
@@ -50,12 +50,12 @@ func newTestClock(timestamp int64) *testClock {
 	}
 }
 
-func TestHTTPSystemClockSetGetTimestamp(t *testing.T) {
+func TestSystemTimeHandlerSetGetTimestamp(t *testing.T) {
 	currTimestamp := int64(123)
 	startPoint := currTimestamp * 2
 
 	testClock := newTestClock(currTimestamp)
-	handler := hthandler.NewSystemTimeHandler(testClock, time.Unix(startPoint, 0))
+	handler := NewSystemTimeHandler(testClock, time.Unix(startPoint, 0))
 
 	mux := http.NewServeMux()
 	mux.Handle("/api/v1/system/time", handler)
@@ -68,7 +68,7 @@ func TestHTTPSystemClockSetGetTimestamp(t *testing.T) {
 	ctx := context.Background()
 	client := htcore.NewDefaultClient()
 
-	clock := NewSystemClock(ctx, client, url, timeout)
+	clock := htcore.NewSystemClock(ctx, client, url, timeout)
 
 	recvTimestamp, err := clock.GetTimestamp()
 	require.Nil(t, err)
