@@ -1,7 +1,6 @@
 package sysmdns
 
 import (
-	"fmt"
 	"net"
 	"strings"
 
@@ -21,16 +20,13 @@ func NewResolveServiceHandler(handler sysnet.ResolveHandler) *ResolveServiceHand
 // HandleService handles mDNS service discovered over local network.
 func (h *ResolveServiceHandler) HandleService(service Service) error {
 	addrs := service.Addrs()
-	if len(addrs) < 1 {
-		return fmt.Errorf("ignore service: instance=%s service=%s hostname=%s:"+
-			" IP address not found",
-			service.Instance(), service.Name(), service.Hostname())
+
+	if len(addrs) == 1 {
+		h.handler.HandleResolve(
+			strings.TrimSuffix(service.Hostname(), "."),
+			&net.IPAddr{IP: addrs[0]},
+		)
 	}
-
-	hostname := strings.TrimSuffix(service.Hostname(), ".")
-	addr := &net.IPAddr{IP: addrs[0]}
-
-	h.handler.HandleResolve(hostname, addr)
 
 	return nil
 }
