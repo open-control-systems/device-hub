@@ -92,7 +92,7 @@ func (p *appPipeline) start(ec *envContext) error {
 		return err
 	}
 
-	deviceStore, err := p.createDeviceMonitor(appContext, mdnsBrowseAwakener, cacheStore, ec)
+	deviceStore, err := p.createDeviceStore(appContext, mdnsBrowseAwakener, cacheStore, ec)
 	if err != nil {
 		return err
 	}
@@ -133,7 +133,7 @@ func (p *appPipeline) stop() error {
 	return p.stopper.Stop()
 }
 
-func (p *appPipeline) createDeviceMonitor(
+func (p *appPipeline) createDeviceStore(
 	ctx context.Context,
 	awakener syssched.Awakener,
 	cacheStore *devstore.CacheStore,
