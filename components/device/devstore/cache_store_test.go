@@ -155,7 +155,7 @@ func TestCacheStoreStartStopEmpty(t *testing.T) {
 		require.Nil(t, store.Stop())
 	}()
 
-	store.Start()
+	require.Nil(t, store.Start())
 }
 
 func TestCacheStoreStopNoStart(t *testing.T) {
@@ -438,7 +438,7 @@ func TestCacheStoreRestore(t *testing.T) {
 	require.Equal(t, deviceURI, desc.URI)
 	require.Equal(t, deviceDesc, desc.Desc)
 
-	store2.Start()
+	require.Nil(t, store2.Start())
 
 	require.NotNil(t, store2.Add(deviceURI, deviceDesc))
 	require.True(t, maps.Equal(telemetryData, <-handler2.telemetry))

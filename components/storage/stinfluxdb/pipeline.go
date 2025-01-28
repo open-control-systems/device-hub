@@ -49,8 +49,10 @@ func (p *Pipeline) GetSystemClock() syscore.SystemClock {
 }
 
 // Start starts the asynchronous UNIX time restoring.
-func (p *Pipeline) Start() {
+func (p *Pipeline) Start() error {
 	go p.clock.run()
+
+	return nil
 }
 
 // Stop stops writing data to the DB.

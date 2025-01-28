@@ -33,8 +33,10 @@ func NewAsyncTaskRunner(
 }
 
 // Start begins asynchronous task processing.
-func (r *AsyncTaskRunner) Start() {
+func (r *AsyncTaskRunner) Start() error {
 	go r.run()
+
+	return nil
 }
 
 // Stop ends asynchronous task processing.

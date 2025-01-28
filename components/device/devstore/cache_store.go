@@ -89,13 +89,17 @@ func (s *CacheStore) SetAliveMonitor(monitor AliveMonitor) {
 }
 
 // Start starts data processing for cached devices.
-func (s *CacheStore) Start() {
+func (s *CacheStore) Start() error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	for _, node := range s.nodes {
-		node.start()
+		if err := node.start(); err != nil {
+			return err
+		}
 	}
+
+	return nil
 }
 
 // Stop stops data processing for added devices.
@@ -167,11 +171,13 @@ func (s *CacheStore) Add(uri string, desc string) error {
 		return fmt.Errorf("failed to persist device information: uri=%s err=%v", uri, err)
 	}
 
+	if err := node.start(); err != nil {
+		return err
+	}
+
 	s.nodes[key] = node
 
 	syscore.LogInf.Printf("cache-store: device added: uri=%s desc=%s\n", uri, desc)
-
-	node.start()
 
 	return nil
 }
@@ -387,8 +393,8 @@ type storeNode struct {
 	runner     *syssched.AsyncTaskRunner
 }
 
-func (s *storeNode) start() {
-	s.runner.Start()
+func (s *storeNode) start() error {
+	return s.runner.Start()
 }
 
 func (s *storeNode) stop() error {

@@ -61,8 +61,10 @@ func NewServer(handler http.Handler, params ServerParams) (*Server, error) {
 }
 
 // Start runs the server.
-func (s *Server) Start() {
+func (s *Server) Start() error {
 	go s.run()
+
+	return nil
 }
 
 // Stop stops the server and waits until it finishes.
