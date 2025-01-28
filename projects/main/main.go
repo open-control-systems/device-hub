@@ -47,9 +47,14 @@ type envContext struct {
 	}
 
 	mdns struct {
-		browseInterval       string
-		browseTimeout        string
-		disableAutodiscovery bool
+		browse struct {
+			interval string
+			timeout  string
+		}
+
+		autodiscovery struct {
+			disable bool
+		}
 	}
 }
 
@@ -92,7 +97,7 @@ func (p *appPipeline) start(ec *envContext) error {
 
 	resolveStore := sysnet.NewResolveStore()
 
-	mdnsBrowseInterval, err := time.ParseDuration(ec.mdns.browseInterval)
+	mdnsBrowseInterval, err := time.ParseDuration(ec.mdns.browse.interval)
 	if err != nil {
 		return err
 	}
@@ -100,7 +105,7 @@ func (p *appPipeline) start(ec *envContext) error {
 		return errors.New("mDNS browse interval can't be less than 1s")
 	}
 
-	mdnsBrowseTimeout, err := time.ParseDuration(ec.mdns.browseTimeout)
+	mdnsBrowseTimeout, err := time.ParseDuration(ec.mdns.browse.timeout)
 	if err != nil {
 		return err
 	}
@@ -181,7 +186,7 @@ func (p *appPipeline) start(ec *envContext) error {
 				" less than 1ms")
 		}
 
-		if !ec.mdns.disableAutodiscovery {
+		if !ec.mdns.autodiscovery.disable {
 			if inactiveMaxInterval < mdnsBrowseInterval {
 				return errors.New("device-monitor-inactive-max-interval can't be" +
 					" less than mdns-browse-interval")
@@ -219,7 +224,7 @@ func (p *appPipeline) start(ec *envContext) error {
 		p.starter.Add(aliveMonitorRunner)
 	}
 
-	if !ec.mdns.disableAutodiscovery {
+	if !ec.mdns.autodiscovery.disable {
 		storeMdnsHandler := devstore.NewStoreMdnsHandler(deviceStore)
 		fanoutServiceHandler.Add(storeMdnsHandler)
 	}
@@ -377,19 +382,19 @@ func main() {
 	)
 
 	cmd.Flags().StringVar(
-		&envContext.mdns.browseInterval,
+		&envContext.mdns.browse.interval,
 		"mdns-browse-interval", "1m",
 		"How often to perform mDNS lookup over local network",
 	)
 
 	cmd.Flags().StringVar(
-		&envContext.mdns.browseTimeout,
+		&envContext.mdns.browse.timeout,
 		"mdns-browse-timeout", "30s",
 		"How long to perform a single mDNS lookup over local network",
 	)
 
 	cmd.Flags().BoolVar(
-		&envContext.mdns.disableAutodiscovery,
+		&envContext.mdns.autodiscovery.disable,
 		"mdns-autodiscovery-disable", false,
 		"Disable automatic device discovery on the local network",
 	)
