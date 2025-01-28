@@ -73,10 +73,9 @@ func (p *appPipeline) start(ec *envContext) error {
 	defer cancelFunc()
 
 	resolveStore := sysnet.NewResolveStore()
+	resolveServiceHandler := sysmdns.NewResolveServiceHandler(resolveStore)
 
 	fanoutServiceHandler := &sysmdns.FanoutServiceHandler{}
-
-	resolveServiceHandler := sysmdns.NewResolveServiceHandler(resolveStore)
 	fanoutServiceHandler.Add(resolveServiceHandler)
 
 	cacheStore, err := p.createCacheStore(
