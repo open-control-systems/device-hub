@@ -78,11 +78,7 @@ func (p *appPipeline) start(ec *envContext) error {
 	fanoutServiceHandler := &sysmdns.FanoutServiceHandler{}
 	fanoutServiceHandler.Add(resolveServiceHandler)
 
-	cacheStore, err := p.createCacheStore(
-		appContext,
-		resolveStore,
-		ec,
-	)
+	cacheStore, err := p.createCacheStore(appContext, resolveStore, ec)
 	if err != nil {
 		return err
 	}
