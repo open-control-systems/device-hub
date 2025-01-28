@@ -74,46 +74,10 @@ func (p *appPipeline) start(ec *envContext) error {
 
 	resolveStore := sysnet.NewResolveStore()
 
-	mdnsBrowseInterval, err := time.ParseDuration(ec.mdns.browse.interval)
-	if err != nil {
-		return err
-	}
-	if mdnsBrowseInterval < time.Second {
-		return errors.New("mDNS browse interval can't be less than 1s")
-	}
-
-	mdnsBrowseTimeout, err := time.ParseDuration(ec.mdns.browse.timeout)
-	if err != nil {
-		return err
-	}
-	if mdnsBrowseTimeout < time.Second {
-		return errors.New("mDNS browse timeout can't be less than 1s")
-	}
-
 	fanoutServiceHandler := &sysmdns.FanoutServiceHandler{}
 
 	resolveServiceHandler := sysmdns.NewResolveServiceHandler(resolveStore)
 	fanoutServiceHandler.Add(resolveServiceHandler)
-
-	mdnsBrowser := sysmdns.NewZeroconfBrowser(
-		appContext,
-		fanoutServiceHandler,
-		sysmdns.ZeroconfBrowserParams{
-			Service: sysmdns.ServiceName(sysmdns.ServiceTypeHTTP, sysmdns.ProtoTCP),
-			Domain:  "local",
-			Timeout: mdnsBrowseTimeout,
-		},
-	)
-	p.stopper.Add("mdns-zeroconf-browser", mdnsBrowser)
-
-	mdnsBrowserRunner := syssched.NewAsyncTaskRunner(
-		appContext,
-		mdnsBrowser,
-		mdnsBrowser,
-		mdnsBrowseInterval,
-	)
-	p.stopper.Add("mdns-zeroconf-browser-runner", mdnsBrowserRunner)
-	p.starter.Add(mdnsBrowserRunner)
 
 	cacheStore, err := p.createCacheStore(
 		appContext,
@@ -124,9 +88,14 @@ func (p *appPipeline) start(ec *envContext) error {
 		return err
 	}
 
+	mdnsBrowseAwakener, err := p.createMdnsBrowser(appContext, fanoutServiceHandler, ec)
+	if err != nil {
+		return err
+	}
+
 	var deviceStore devstore.Store
 
-	deviceStore = devstore.NewStoreAwakener(mdnsBrowserRunner, cacheStore)
+	deviceStore = devstore.NewStoreAwakener(mdnsBrowseAwakener, cacheStore)
 
 	if !ec.device.monitor.inactive.disable {
 		inactiveMaxInterval, err :=
@@ -138,13 +107,6 @@ func (p *appPipeline) start(ec *envContext) error {
 		if inactiveMaxInterval < time.Millisecond {
 			return errors.New("device-monitor-inactive-max-interval can't be" +
 				" less than 1ms")
-		}
-
-		if !ec.mdns.autodiscovery.disable {
-			if inactiveMaxInterval < mdnsBrowseInterval {
-				return errors.New("device-monitor-inactive-max-interval can't be" +
-					" less than mdns-browse-interval")
-			}
 		}
 
 		inactiveUpdateInterval, err :=
@@ -212,6 +174,50 @@ func (p *appPipeline) start(ec *envContext) error {
 
 func (p *appPipeline) stop() error {
 	return p.stopper.Stop()
+}
+
+func (p *appPipeline) createMdnsBrowser(
+	ctx context.Context,
+	fanoutServiceHandler *sysmdns.FanoutServiceHandler,
+	ec *envContext,
+) (syssched.Awakener, error) {
+	mdnsBrowseInterval, err := time.ParseDuration(ec.mdns.browse.interval)
+	if err != nil {
+		return nil, err
+	}
+	if mdnsBrowseInterval < time.Second {
+		return nil, errors.New("mDNS browse interval can't be less than 1s")
+	}
+
+	mdnsBrowseTimeout, err := time.ParseDuration(ec.mdns.browse.timeout)
+	if err != nil {
+		return nil, err
+	}
+	if mdnsBrowseTimeout < time.Second {
+		return nil, errors.New("mDNS browse timeout can't be less than 1s")
+	}
+
+	mdnsBrowser := sysmdns.NewZeroconfBrowser(
+		ctx,
+		fanoutServiceHandler,
+		sysmdns.ZeroconfBrowserParams{
+			Service: sysmdns.ServiceName(sysmdns.ServiceTypeHTTP, sysmdns.ProtoTCP),
+			Domain:  "local",
+			Timeout: mdnsBrowseTimeout,
+		},
+	)
+	p.stopper.Add("mdns-zeroconf-browser", mdnsBrowser)
+
+	mdnsBrowserRunner := syssched.NewAsyncTaskRunner(
+		ctx,
+		mdnsBrowser,
+		mdnsBrowser,
+		mdnsBrowseInterval,
+	)
+	p.stopper.Add("mdns-zeroconf-browser-runner", mdnsBrowserRunner)
+	p.starter.Add(mdnsBrowserRunner)
+
+	return mdnsBrowserRunner, nil
 }
 
 func (p *appPipeline) createCacheStore(
