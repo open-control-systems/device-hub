@@ -71,9 +71,6 @@ func (p *appPipeline) start(ec *envContext) error {
 		syscall.SIGTERM,
 		syscall.SIGQUIT)
 	defer cancelFunc()
-	storagePipeline := stinfluxdb.NewPipeline(appContext, ec.dbParams)
-	p.stopper.Add("storage-influxdb-pipeline", storagePipeline)
-	p.starter.Add(storagePipeline)
 
 	resolveStore := sysnet.NewResolveStore()
 
@@ -118,42 +115,14 @@ func (p *appPipeline) start(ec *envContext) error {
 	p.stopper.Add("mdns-zeroconf-browser-runner", mdnsBrowserRunner)
 	p.starter.Add(mdnsBrowserRunner)
 
-	fetchInterval, err := time.ParseDuration(ec.device.HTTP.fetchInterval)
-	if err != nil {
-		return err
-	}
-	if fetchInterval < time.Millisecond {
-		return errors.New("HTTP device fetch interval can't be less than 1ms")
-	}
-
-	fetchTimeout, err := time.ParseDuration(ec.device.HTTP.fetchTimeout)
-	if err != nil {
-		return err
-	}
-	if fetchTimeout < time.Millisecond {
-		return errors.New("HTTP device fetch timeout can't be less than 1ms")
-	}
-
-	cacheStoreParams := devstore.CacheStoreParams{}
-	cacheStoreParams.HTTP.FetchInterval = fetchInterval
-	cacheStoreParams.HTTP.FetchTimeout = fetchTimeout
-
-	db, err := p.createDB(ec)
-	if err != nil {
-		return err
-	}
-
-	cacheStore := devstore.NewCacheStore(
+	cacheStore, err := p.createCacheStore(
 		appContext,
-		p.systemClock,
-		storagePipeline.GetSystemClock(),
-		storagePipeline.GetDataHandler(),
-		db,
 		resolveStore,
-		cacheStoreParams,
+		ec,
 	)
-	p.stopper.Add("device-cache-store", cacheStore)
-	p.starter.Add(cacheStore)
+	if err != nil {
+		return err
+	}
 
 	var deviceStore devstore.Store
 
@@ -243,6 +212,55 @@ func (p *appPipeline) start(ec *envContext) error {
 
 func (p *appPipeline) stop() error {
 	return p.stopper.Stop()
+}
+
+func (p *appPipeline) createCacheStore(
+	ctx context.Context,
+	resolveStore *sysnet.ResolveStore,
+	ec *envContext,
+) (*devstore.CacheStore, error) {
+	fetchInterval, err := time.ParseDuration(ec.device.HTTP.fetchInterval)
+	if err != nil {
+		return nil, err
+	}
+	if fetchInterval < time.Millisecond {
+		return nil, errors.New("HTTP device fetch interval can't be less than 1ms")
+	}
+
+	fetchTimeout, err := time.ParseDuration(ec.device.HTTP.fetchTimeout)
+	if err != nil {
+		return nil, err
+	}
+	if fetchTimeout < time.Millisecond {
+		return nil, errors.New("HTTP device fetch timeout can't be less than 1ms")
+	}
+
+	cacheStoreParams := devstore.CacheStoreParams{}
+	cacheStoreParams.HTTP.FetchInterval = fetchInterval
+	cacheStoreParams.HTTP.FetchTimeout = fetchTimeout
+
+	db, err := p.createDB(ec)
+	if err != nil {
+		return nil, err
+	}
+
+	storagePipeline := stinfluxdb.NewPipeline(ctx, ec.dbParams)
+	p.stopper.Add("storage-influxdb-pipeline", storagePipeline)
+	p.starter.Add(storagePipeline)
+
+	cacheStore := devstore.NewCacheStore(
+		ctx,
+		p.systemClock,
+		storagePipeline.GetSystemClock(),
+		storagePipeline.GetDataHandler(),
+		db,
+		resolveStore,
+		cacheStoreParams,
+	)
+	p.stopper.Add("device-cache-store", cacheStore)
+	p.starter.Add(cacheStore)
+
+	return cacheStore, nil
 }
 
 func (p *appPipeline) createDB(ec *envContext) (stcore.DB, error) {
