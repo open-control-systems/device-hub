@@ -75,26 +75,6 @@ func (p *appPipeline) start(ec *envContext) error {
 	p.stopper.Add("storage-influxdb-pipeline", storagePipeline)
 	p.starter.Add(storagePipeline)
 
-	var db stcore.DB
-
-	if ec.cacheDir != "" {
-		ec.cacheDir = path.Join(ec.cacheDir, "bbolt.db")
-
-		bboltDB, err := stcore.NewBboltDB(ec.cacheDir, &bbolt.Options{
-			Timeout: time.Second * 5,
-		})
-		if err != nil {
-			return err
-		}
-		p.stopper.Add("bbolt-database", syssched.FuncStopper(func() error {
-			return bboltDB.Close()
-		}))
-
-		db = stcore.NewBboltDBBucket(bboltDB, "device_bucket")
-	} else {
-		db = &stcore.NoopDB{}
-	}
-
 	resolveStore := sysnet.NewResolveStore()
 
 	mdnsBrowseInterval, err := time.ParseDuration(ec.mdns.browse.interval)
@@ -157,6 +137,11 @@ func (p *appPipeline) start(ec *envContext) error {
 	cacheStoreParams := devstore.CacheStoreParams{}
 	cacheStoreParams.HTTP.FetchInterval = fetchInterval
 	cacheStoreParams.HTTP.FetchTimeout = fetchTimeout
+
+	db, err := p.createDB(ec)
+	if err != nil {
+		return err
+	}
 
 	cacheStore := devstore.NewCacheStore(
 		appContext,
@@ -258,6 +243,27 @@ func (p *appPipeline) start(ec *envContext) error {
 
 func (p *appPipeline) stop() error {
 	return p.stopper.Stop()
+}
+
+func (p *appPipeline) createDB(ec *envContext) (stcore.DB, error) {
+	if ec.cacheDir == "" {
+		return &stcore.NoopDB{}, nil
+	}
+
+	ec.cacheDir = path.Join(ec.cacheDir, "bbolt.db")
+
+	bboltDB, err := stcore.NewBboltDB(ec.cacheDir, &bbolt.Options{
+		Timeout: time.Second * 5,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	p.stopper.Add("bbolt-database", syssched.FuncStopper(func() error {
+		return bboltDB.Close()
+	}))
+
+	return stcore.NewBboltDBBucket(bboltDB, "device_bucket"), nil
 }
 
 func registerHTTPRoutes(
