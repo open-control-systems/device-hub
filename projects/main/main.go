@@ -93,51 +93,9 @@ func (p *appPipeline) start(ec *envContext) error {
 		return err
 	}
 
-	var deviceStore devstore.Store
-
-	deviceStore = devstore.NewStoreAwakener(mdnsBrowseAwakener, cacheStore)
-
-	if !ec.device.monitor.inactive.disable {
-		inactiveMaxInterval, err :=
-			time.ParseDuration(ec.device.monitor.inactive.maxInterval)
-		if err != nil {
-			return err
-		}
-
-		if inactiveMaxInterval < time.Millisecond {
-			return errors.New("device-monitor-inactive-max-interval can't be" +
-				" less than 1ms")
-		}
-
-		inactiveUpdateInterval, err :=
-			time.ParseDuration(ec.device.monitor.inactive.updateInterval)
-		if err != nil {
-			return err
-		}
-
-		if inactiveUpdateInterval < time.Millisecond {
-			return errors.New("device-monitor-inactive-update-interval can't be" +
-				" less than 1ms")
-		}
-
-		aliveMonitor := devstore.NewStoreAliveMonitor(
-			&syscore.LocalMonotonicClock{},
-			deviceStore,
-			inactiveMaxInterval,
-		)
-		cacheStore.SetAliveMonitor(aliveMonitor)
-
-		deviceStore = aliveMonitor
-
-		aliveMonitorRunner := syssched.NewAsyncTaskRunner(
-			appContext,
-			aliveMonitor,
-			aliveMonitor,
-			inactiveUpdateInterval,
-		)
-
-		p.stopper.Add("device-alive-monitor-runner", aliveMonitorRunner)
-		p.starter.Add(aliveMonitorRunner)
+	deviceStore, err := p.createDeviceMonitor(appContext, mdnsBrowseAwakener, cacheStore, ec)
+	if err != nil {
+		return err
 	}
 
 	if !ec.mdns.autodiscovery.disable {
@@ -174,6 +132,60 @@ func (p *appPipeline) start(ec *envContext) error {
 
 func (p *appPipeline) stop() error {
 	return p.stopper.Stop()
+}
+
+func (p *appPipeline) createDeviceMonitor(
+	ctx context.Context,
+	awakener syssched.Awakener,
+	cacheStore *devstore.CacheStore,
+	ec *envContext,
+) (devstore.Store, error) {
+	awakeStore := devstore.NewStoreAwakener(awakener, cacheStore)
+
+	if ec.device.monitor.inactive.disable {
+		return awakeStore, nil
+	}
+
+	inactiveMaxInterval, err :=
+		time.ParseDuration(ec.device.monitor.inactive.maxInterval)
+	if err != nil {
+		return nil, err
+	}
+
+	if inactiveMaxInterval < time.Millisecond {
+		return nil, errors.New("device-monitor-inactive-max-interval can't be" +
+			" less than 1ms")
+	}
+
+	inactiveUpdateInterval, err :=
+		time.ParseDuration(ec.device.monitor.inactive.updateInterval)
+	if err != nil {
+		return nil, err
+	}
+
+	if inactiveUpdateInterval < time.Millisecond {
+		return nil, errors.New("device-monitor-inactive-update-interval can't be" +
+			" less than 1ms")
+	}
+
+	aliveMonitor := devstore.NewStoreAliveMonitor(
+		&syscore.LocalMonotonicClock{},
+		awakeStore,
+		inactiveMaxInterval,
+	)
+	cacheStore.SetAliveMonitor(aliveMonitor)
+
+	aliveMonitorRunner := syssched.NewAsyncTaskRunner(
+		ctx,
+		aliveMonitor,
+		aliveMonitor,
+		inactiveUpdateInterval,
+	)
+
+	p.stopper.Add("device-alive-monitor-runner", aliveMonitorRunner)
+	p.starter.Add(aliveMonitorRunner)
+
+	return aliveMonitor, nil
 }
 
 func (p *appPipeline) createMdnsBrowser(
