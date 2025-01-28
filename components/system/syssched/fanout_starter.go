@@ -6,10 +6,14 @@ type FanoutStarter struct {
 }
 
 // Start starts all the registered starters.
-func (s *FanoutStarter) Start() {
+func (s *FanoutStarter) Start() error {
 	for _, starter := range s.starters {
-		starter.Start()
+		if err := starter.Start(); err != nil {
+			return err
+		}
 	}
+
+	return nil
 }
 
 // Add adds the starter to be started on Start() call.

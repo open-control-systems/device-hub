@@ -242,7 +242,9 @@ func (p *appPipeline) start(ec *envContext) error {
 		devstore.NewStoreHTTPHandler(deviceStore),
 	)
 
-	p.starter.Start()
+	if err := p.starter.Start(); err != nil {
+		return err
+	}
 
 	<-appContext.Done()
 
