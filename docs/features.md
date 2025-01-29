@@ -10,6 +10,27 @@ For more advanced configuration, see the following device-hub CLI options:
 --device-monitor-inactive-update-interval string   How often to check for a device inactivity (default "10s")
 ```
 
+## mDNS Server
+
+The device-hub has a bult-in mDNS server. This allows to assign a memorable hostname to the device-hub and use it instead of an explicit IP address, which can be changed from time to time.
+
+For more advanced configuration, see the following device-hub CLI options:
+
+```
+--mdns-server-disable               Disable mDNS server
+--mdns-server-hostname string       mDNS server hostname (default "device-hub")
+--mdns-server-iface string          Comma-separated list of network interfaces for the mDNS server (empty for all interfaces)
+--mdns-server-instance string       mDNS server instance name (default "Device Hub Sowtware")
+```
+
+Once the mDNS server is properly configured, it should be possible to access the device-hub as follows:
+
+```
+# device-hub is a hostname.
+# 8081 is a HTTP port on which HTTP server is running.
+curl device-hub.local:8081/api/v1/system/time
+```
+
 ## mDNS Auto Discovery
 
 The device-hub can automatically add devices based on the mDNS txt records.
