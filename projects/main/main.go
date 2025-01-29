@@ -4,15 +4,19 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
 	"path"
+	"strings"
 	"syscall"
 	"time"
 
 	"github.com/spf13/cobra"
 	"go.etcd.io/bbolt"
+
+	"github.com/open-control-systems/zeroconf"
 
 	"github.com/open-control-systems/device-hub/components/device/devstore"
 	"github.com/open-control-systems/device-hub/components/http/htcore"
@@ -50,6 +54,7 @@ type envContext struct {
 		browse struct {
 			interval string
 			timeout  string
+			iface    string
 		}
 
 		autodiscovery struct {
@@ -204,6 +209,11 @@ func (p *appPipeline) createMdnsBrowser(
 		return nil, errors.New("mDNS browse timeout can't be less than 1s")
 	}
 
+	filteredIfaces, err := parseIfaceOption(ec.mdns.browse.iface)
+	if err != nil {
+		return nil, err
+	}
+
 	mdnsBrowser := sysmdns.NewZeroconfBrowser(
 		ctx,
 		fanoutServiceHandler,
@@ -211,6 +221,9 @@ func (p *appPipeline) createMdnsBrowser(
 			Service: sysmdns.ServiceName(sysmdns.ServiceTypeHTTP, sysmdns.ProtoTCP),
 			Domain:  "local",
 			Timeout: mdnsBrowseTimeout,
+			Opts: []zeroconf.ClientOption{
+				zeroconf.SelectIfaces(filteredIfaces),
+			},
 		},
 	)
 	p.stopper.Add("mdns-zeroconf-browser", mdnsBrowser)
@@ -295,6 +308,40 @@ func (p *appPipeline) createDB(ec *envContext) (stcore.DB, error) {
 	}))
 
 	return stcore.NewBboltDBBucket(bboltDB, "device_bucket"), nil
+}
+
+func parseIfaceOption(opt string) ([]net.Interface, error) {
+	var allowedIfaces []string
+
+	if opt != "" {
+		allowedIfaces = strings.Split(opt, ",")
+		if len(allowedIfaces) < 1 {
+			return nil, errors.New("mDNS network interface list has invalid format")
+		}
+	}
+
+	filteredIfaces, err := sysnet.FilterInterfaces(func(iface net.Interface) bool {
+		if iface.Flags&net.FlagMulticast == 0 {
+			return false
+		}
+
+		if allowedIfaces == nil {
+			return true
+		}
+
+		for _, allowedIface := range allowedIfaces {
+			if allowedIface == iface.Name {
+				return true
+			}
+		}
+
+		return false
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return filteredIfaces, nil
 }
 
 func registerHTTPRoutes(
@@ -428,6 +475,13 @@ func main() {
 		&envContext.mdns.browse.timeout,
 		"mdns-browse-timeout", "30s",
 		"How long to perform a single mDNS lookup over local network",
+	)
+
+	cmd.Flags().StringVar(
+		&envContext.mdns.browse.iface,
+		"mdns-browse-iface", "",
+		"Comma-separated list of network interfaces for the mDNS lookup"+
+			" (empty for all interfaces)",
 	)
 
 	cmd.Flags().BoolVar(
