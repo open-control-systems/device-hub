@@ -5,7 +5,8 @@ import (
 	"net"
 	"time"
 
-	"github.com/grandcat/zeroconf"
+	"github.com/open-control-systems/zeroconf"
+
 	"github.com/open-control-systems/device-hub/components/system/syscore"
 )
 
