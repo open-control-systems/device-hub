@@ -60,6 +60,13 @@ type envContext struct {
 		autodiscovery struct {
 			disable bool
 		}
+
+		server struct {
+			disable      bool
+			hostname     string
+			instanceName string
+			iface        string
+		}
 	}
 }
 
@@ -120,6 +127,12 @@ func (p *appPipeline) start(ec *envContext) error {
 		hthandler.NewSystemTimeHandler(p.systemClock, time.Unix(1733215816, 0)),
 		devstore.NewStoreHTTPHandler(deviceStore),
 	)
+
+	if !ec.mdns.server.disable {
+		if err := p.configureMdnsServer(server, ec); err != nil {
+			return err
+		}
+	}
 
 	if err := p.starter.Start(); err != nil {
 		return err
@@ -310,6 +323,29 @@ func (p *appPipeline) createDB(ec *envContext) (stcore.DB, error) {
 	return stcore.NewBboltDBBucket(bboltDB, "device_bucket"), nil
 }
 
+func (p *appPipeline) configureMdnsServer(server *htcore.Server, ec *envContext) error {
+	services := []*sysmdns.Service{
+		{
+			Instance:   ec.mdns.server.instanceName,
+			Name:       sysmdns.ServiceName(sysmdns.ServiceTypeHTTP, sysmdns.ProtoTCP),
+			Hostname:   ec.mdns.server.hostname,
+			Port:       server.Port(),
+			TxtRecords: []string{"api_base_path=/api/v1"},
+		},
+	}
+
+	filteredIfaces, err := parseIfaceOption(ec.mdns.server.iface)
+	if err != nil {
+		return err
+	}
+
+	zeroconfServer := sysmdns.NewZeroconfServer(services, filteredIfaces)
+	p.stopper.Add("mdns-server", zeroconfServer)
+	p.starter.Add(zeroconfServer)
+
+	return nil
+}
+
 func parseIfaceOption(opt string) ([]net.Interface, error) {
 	var allowedIfaces []string
 
@@ -394,6 +430,15 @@ func prepareEnvironment(ec *envContext) error {
 	}
 	if err := syscore.SetLogFile(ec.logPath); err != nil {
 		return err
+	}
+
+	if !ec.mdns.server.disable {
+		if ec.mdns.server.hostname == "" {
+			return errors.New("mDNS server hostname can't be empty")
+		}
+		if ec.mdns.server.instanceName == "" {
+			return errors.New("mDNS server instance name can't be empty")
+		}
 	}
 
 	return nil
@@ -488,6 +533,31 @@ func main() {
 		&envContext.mdns.autodiscovery.disable,
 		"mdns-autodiscovery-disable", false,
 		"Disable automatic device discovery on the local network",
+	)
+
+	cmd.Flags().BoolVar(
+		&envContext.mdns.server.disable,
+		"mdns-server-disable", false,
+		"Disable mDNS server",
+	)
+
+	cmd.Flags().StringVar(
+		&envContext.mdns.server.hostname,
+		"mdns-server-hostname", "device-hub",
+		"mDNS server hostname",
+	)
+
+	cmd.Flags().StringVar(
+		&envContext.mdns.server.instanceName,
+		"mdns-server-instance", "Device Hub Software",
+		"mDNS server instance name",
+	)
+
+	cmd.Flags().StringVar(
+		&envContext.mdns.server.iface,
+		"mdns-server-iface", "",
+		"Comma-separated list of network interfaces for the mDNS server"+
+			" (empty for all interfaces)",
 	)
 
 	if err := cmd.Execute(); err != nil {

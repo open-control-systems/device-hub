@@ -31,7 +31,8 @@ services:
       "--influxdb-url", "${INFLUXDB_URL}",
       "--influxdb-org", "${INFLUXDB_ORG}",
       "--influxdb-api-token", "${INFLUXDB_API_TOKEN}",
-      "--influxdb-bucket", "${INFLUXDB_BUCKET}"
+      "--influxdb-bucket", "${INFLUXDB_BUCKET}",
+      "--mdns-server-iface", "${DEVICE_HUB_MDNS_SERVER_IFACE}"
     ]
     volumes:
       - ${DEVICE_HUB_LOG_PATH}:${DEVICE_HUB_LOG_PATH}
