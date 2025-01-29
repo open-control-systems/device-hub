@@ -14,6 +14,7 @@ type Server struct {
 	ln     net.Listener
 	doneCh chan struct{}
 	url    string
+	port   int
 }
 
 // ServerParams contains server parameters.
@@ -57,6 +58,7 @@ func NewServer(handler http.Handler, params ServerParams) (*Server, error) {
 		ln:     ln,
 		doneCh: make(chan struct{}),
 		url:    "http://" + ln.Addr().String(),
+		port:   params.Port,
 	}, nil
 }
 
@@ -81,6 +83,11 @@ func (s *Server) Stop() error {
 // URL returns base URL of form http://ipaddr:port with no trailing slash.
 func (s *Server) URL() string {
 	return s.url
+}
+
+// Port returns the port to which the server socket is bound.
+func (s *Server) Port() int {
+	return s.port
 }
 
 func (s *Server) run() {
