@@ -26,6 +26,9 @@ type ZeroconfBrowserParams struct {
 
 	// Timeout is a mDNS browsing timeout.
 	Timeout time.Duration
+
+	// Opts is a zeroconf browse configuration options.
+	Opts []zeroconf.ClientOption
 }
 
 // ZeroconfBrowser browses the local network for the mDNS devices.
@@ -53,7 +56,7 @@ func NewZeroconfBrowser(
 
 // Run executes a single mDNS lookup operation.
 func (b *ZeroconfBrowser) Run() error {
-	resolver, err := zeroconf.NewResolver(nil)
+	resolver, err := zeroconf.NewResolver(b.params.Opts...)
 	if err != nil {
 		return err
 	}
