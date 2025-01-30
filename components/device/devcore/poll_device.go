@@ -150,9 +150,11 @@ func (d *PollDevice) parseDeviceID(js JSON) error {
 		)
 	}
 
-	syscore.LogInf.Printf("poll-device: device ID received: %s\n", deviceID)
+	if d.deviceID == "" {
+		syscore.LogInf.Printf("poll-device: device ID received: %s\n", deviceID)
 
-	d.deviceID = deviceID
+		d.deviceID = deviceID
+	}
 
 	return nil
 }
