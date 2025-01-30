@@ -1,12 +1,12 @@
 package devstore
 
 import (
-	"net"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 
 	"github.com/open-control-systems/device-hub/components/status"
+	"github.com/open-control-systems/device-hub/components/system/sysmdns"
 )
 
 type testStoreMdnsHandlerStore struct {
@@ -67,39 +67,6 @@ func (s *testStoreMdnsHandlerStore) checkDevice(uri string, desc string) bool {
 	return d == desc
 }
 
-type testStoreMdnsHandlerMdnsService struct {
-	instance   string
-	name       string
-	hostname   string
-	port       int
-	txtRecords []string
-	addrs      []net.IP
-}
-
-func (s *testStoreMdnsHandlerMdnsService) Instance() string {
-	return s.instance
-}
-
-func (s *testStoreMdnsHandlerMdnsService) Name() string {
-	return s.name
-}
-
-func (s *testStoreMdnsHandlerMdnsService) Hostname() string {
-	return s.hostname
-}
-
-func (s *testStoreMdnsHandlerMdnsService) Port() int {
-	return s.port
-}
-
-func (s *testStoreMdnsHandlerMdnsService) TxtRecords() []string {
-	return s.txtRecords
-}
-
-func (s *testStoreMdnsHandlerMdnsService) Addrs() []net.IP {
-	return s.addrs
-}
-
 func TestStoreMdnsHandlerInvalidTxtRecordFormat(t *testing.T) {
 	store := newTestStoreMdnsHandlerStore()
 	mdnsHandler := NewStoreMdnsHandler(store)
@@ -112,8 +79,9 @@ func TestStoreMdnsHandlerInvalidTxtRecordFormat(t *testing.T) {
 		"=foo",
 		"=",
 	} {
-		service := &testStoreMdnsHandlerMdnsService{}
-		service.txtRecords = append(service.txtRecords, record)
+		service := &sysmdns.Service{
+			TxtRecords: []string{record},
+		}
 
 		require.Nil(t, mdnsHandler.HandleService(service))
 		require.Equal(t, 0, store.count())
@@ -147,8 +115,9 @@ func TestStoreMdnsHandlerMissedRequiredTxtFields(t *testing.T) {
 			"autodiscovery_desc=home-plant",
 		},
 	} {
-		service := &testStoreMdnsHandlerMdnsService{}
-		service.txtRecords = append(service.txtRecords, records...)
+		service := &sysmdns.Service{
+			TxtRecords: records,
+		}
 
 		require.Nil(t, mdnsHandler.HandleService(service))
 		require.Equal(t, 0, store.count())
@@ -176,8 +145,9 @@ func TestStoreMdnsHandlerInvalidAutodiscoveryMode(t *testing.T) {
 			"autodiscovery_desc=home-plant",
 		},
 	} {
-		service := &testStoreMdnsHandlerMdnsService{}
-		service.txtRecords = append(service.txtRecords, records...)
+		service := &sysmdns.Service{
+			TxtRecords: records,
+		}
 
 		require.Equal(t, status.StatusInvalidArg, mdnsHandler.HandleService(service))
 		require.Equal(t, 0, store.count())
@@ -190,11 +160,12 @@ func TestStoreMdnsHandlerFailedToAdd(t *testing.T) {
 
 	mdnsHandler := NewStoreMdnsHandler(store)
 
-	service := &testStoreMdnsHandlerMdnsService{}
-	service.txtRecords = []string{
-		"autodiscovery_mode=1",
-		"autodiscovery_uri=http//bonsai-growlab.local/api/v1",
-		"autodiscovery_desc=home-plant",
+	service := &sysmdns.Service{
+		TxtRecords: []string{
+			"autodiscovery_mode=1",
+			"autodiscovery_uri=http//bonsai-growlab.local/api/v1",
+			"autodiscovery_desc=home-plant",
+		},
 	}
 
 	require.Equal(t, store.err, mdnsHandler.HandleService(service))
@@ -204,11 +175,12 @@ func TestStoreMdnsHandlerAddOK(t *testing.T) {
 	store := newTestStoreMdnsHandlerStore()
 	mdnsHandler := NewStoreMdnsHandler(store)
 
-	service := &testStoreMdnsHandlerMdnsService{}
-	service.txtRecords = []string{
-		"autodiscovery_mode=1",
-		"autodiscovery_uri=http://bonsai-growlab.local/api/v1",
-		"autodiscovery_desc=home-plant",
+	service := &sysmdns.Service{
+		TxtRecords: []string{
+			"autodiscovery_mode=1",
+			"autodiscovery_uri=http://bonsai-growlab.local/api/v1",
+			"autodiscovery_desc=home-plant",
+		},
 	}
 
 	require.Nil(t, mdnsHandler.HandleService(service))
@@ -221,11 +193,12 @@ func TestStoreMdnsHandlerAddMultipleTimes(t *testing.T) {
 	mdnsHandler := NewStoreMdnsHandler(store)
 
 	for n := 0; n < 10; n++ {
-		service := &testStoreMdnsHandlerMdnsService{}
-		service.txtRecords = []string{
-			"autodiscovery_mode=1",
-			"autodiscovery_uri=http://bonsai-growlab.local/api/v1",
-			"autodiscovery_desc=home-plant",
+		service := &sysmdns.Service{
+			TxtRecords: []string{
+				"autodiscovery_mode=1",
+				"autodiscovery_uri=http://bonsai-growlab.local/api/v1",
+				"autodiscovery_desc=home-plant",
+			},
 		}
 
 		require.Nil(t, mdnsHandler.HandleService(service))

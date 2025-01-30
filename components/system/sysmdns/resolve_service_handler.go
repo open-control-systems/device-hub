@@ -18,12 +18,12 @@ func NewResolveServiceHandler(handler sysnet.ResolveHandler) *ResolveServiceHand
 }
 
 // HandleService handles mDNS service discovered over local network.
-func (h *ResolveServiceHandler) HandleService(service Service) error {
-	addrs := service.Addrs()
+func (h *ResolveServiceHandler) HandleService(service *Service) error {
+	addrs := service.AddrsIPv4
 
 	if len(addrs) == 1 {
 		h.handler.HandleResolve(
-			strings.TrimSuffix(service.Hostname(), "."),
+			strings.TrimSuffix(service.Hostname, "."),
 			&net.IPAddr{IP: addrs[0]},
 		)
 	}

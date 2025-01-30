@@ -23,12 +23,12 @@ func NewStoreMdnsHandler(store Store) *StoreMdnsHandler {
 }
 
 // HandleService handles mDNS service discovered over local network.
-func (h *StoreMdnsHandler) HandleService(service sysmdns.Service) error {
+func (h *StoreMdnsHandler) HandleService(service *sysmdns.Service) error {
 	if ignoreService(service) {
 		return nil
 	}
 
-	records, err := parseTxtRecords(service.TxtRecords())
+	records, err := parseTxtRecords(service.TxtRecords)
 	if err != nil {
 		return err
 	}
@@ -85,8 +85,8 @@ const (
 	autodiscoveryModeAdd
 )
 
-func ignoreService(service sysmdns.Service) bool {
-	for _, record := range service.TxtRecords() {
+func ignoreService(service *sysmdns.Service) bool {
+	for _, record := range service.TxtRecords {
 		if strings.Contains(record, "autodiscovery_mode") {
 			return false
 		}

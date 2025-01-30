@@ -2,7 +2,6 @@ package sysmdns
 
 import (
 	"context"
-	"net"
 	"time"
 
 	"github.com/open-control-systems/zeroconf"
@@ -93,38 +92,18 @@ func (b *ZeroconfBrowser) HandleError(err error) {
 }
 
 func (b *ZeroconfBrowser) handleEntry(entry *zeroconf.ServiceEntry) {
-	service := &zeroconfService{entry: entry}
+	service := &Service{
+		Instance:   entry.Instance,
+		Name:       entry.Service,
+		Hostname:   entry.HostName,
+		Port:       entry.Port,
+		TxtRecords: entry.Text,
+		AddrsIPv4:  entry.AddrIPv4,
+		AddrsIPv6:  entry.AddrIPv6,
+	}
 
 	if err := b.handler.HandleService(service); err != nil {
 		syscore.LogWrn.Printf("mdns-zeroconf-browser: failed to handle service: service=%s"+
 			" domain=%s err=%v\n", b.params.Service, b.params.Domain, err)
 	}
-}
-
-type zeroconfService struct {
-	entry *zeroconf.ServiceEntry
-}
-
-func (s *zeroconfService) Instance() string {
-	return s.entry.Instance
-}
-
-func (s *zeroconfService) Name() string {
-	return s.entry.Service
-}
-
-func (s *zeroconfService) Hostname() string {
-	return s.entry.HostName
-}
-
-func (s *zeroconfService) Port() int {
-	return s.entry.Port
-}
-
-func (s *zeroconfService) TxtRecords() []string {
-	return s.entry.Text
-}
-
-func (s *zeroconfService) Addrs() []net.IP {
-	return s.entry.AddrIPv4
 }
