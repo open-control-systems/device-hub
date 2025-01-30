@@ -257,8 +257,23 @@ func (s *CacheStore) makeNode(uri string, desc string, now time.Time) (*storeNod
 	}
 
 	deviceType := parseDeviceType(u.Scheme)
-	if deviceType == deviceTypeUnsupported {
+
+	switch deviceType {
+	case deviceTypeHTTP:
+		return s.makeNodeHTTP(u, uri, desc, now)
+	default:
 		return nil, status.StatusNotSupported
+	}
+}
+
+func (s *CacheStore) makeNodeHTTP(
+	u *url.URL,
+	uri string,
+	desc string,
+	now time.Time,
+) (*storeNode, error) {
+	if u.Port() == "" {
+		return nil, fmt.Errorf("HTTP port is missed")
 	}
 
 	ctx, cancelFunc := context.WithCancel(s.ctx)
@@ -275,8 +290,8 @@ func (s *CacheStore) makeNode(uri string, desc string, now time.Time) (*storeNod
 			s.localClock,
 			s.remoteLastClock,
 			uri,
-			u.Hostname(),
 			desc,
+			u.Hostname(),
 		),
 		&logErrorHandler{uri: uri, desc: desc},
 		s.params.HTTP.FetchInterval,
@@ -302,12 +317,12 @@ func (s *CacheStore) newHTTPDevice(
 	localClock syscore.SystemClock,
 	remoteLastClock syscore.SystemClock,
 	uri string,
-	hostname string,
 	desc string,
+	hostname string,
 ) syssched.Task {
 	remoteCurrClock := htcore.NewSystemClock(
 		ctx,
-		s.makeHTTPClient(stopper, uri, hostname, desc),
+		s.makeHTTPClient(stopper, uri, desc, hostname),
 		uri+"/system/time",
 		s.params.HTTP.FetchTimeout,
 	)
@@ -318,13 +333,13 @@ func (s *CacheStore) newHTTPDevice(
 	task := devcore.NewPollDevice(
 		htcore.NewURLFetcher(
 			ctx,
-			s.makeHTTPClient(stopper, uri, hostname, desc),
+			s.makeHTTPClient(stopper, uri, desc, hostname),
 			uri+"/registration",
 			s.params.HTTP.FetchTimeout,
 		),
 		htcore.NewURLFetcher(
 			ctx,
-			s.makeHTTPClient(stopper, uri, hostname, desc),
+			s.makeHTTPClient(stopper, uri, desc, hostname),
 			uri+"/telemetry",
 			s.params.HTTP.FetchTimeout,
 		),
@@ -344,8 +359,8 @@ func (s *CacheStore) newHTTPDevice(
 func (s *CacheStore) makeHTTPClient(
 	stopper *syssched.FanoutStopper,
 	uri string,
-	hostname string,
 	desc string,
+	hostname string,
 ) *htcore.HTTPClient {
 	if !strings.Contains(uri, ".local") {
 		return htcore.NewDefaultClient()
