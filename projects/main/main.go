@@ -90,17 +90,12 @@ func (p *appPipeline) start(ec *envContext) error {
 	fanoutServiceHandler := &sysmdns.FanoutServiceHandler{}
 	fanoutServiceHandler.Add(resolveServiceHandler)
 
-	cacheStore, err := p.createCacheStore(appContext, resolveStore, ec)
-	if err != nil {
-		return err
-	}
-
 	mdnsBrowseAwakener, err := p.createMdnsBrowser(appContext, fanoutServiceHandler, ec)
 	if err != nil {
 		return err
 	}
 
-	deviceStore, err := p.createDeviceStore(appContext, mdnsBrowseAwakener, cacheStore, ec)
+	deviceStore, err := p.createDeviceStore(appContext, resolveStore, mdnsBrowseAwakener, ec)
 	if err != nil {
 		return err
 	}
@@ -149,10 +144,15 @@ func (p *appPipeline) stop() error {
 
 func (p *appPipeline) createDeviceStore(
 	ctx context.Context,
+	resolveStore *sysnet.ResolveStore,
 	awakener syssched.Awakener,
-	cacheStore *devstore.CacheStore,
 	ec *envContext,
 ) (devstore.Store, error) {
+	cacheStore, err := p.createCacheStore(ctx, resolveStore, ec)
+	if err != nil {
+		return nil, err
+	}
+
 	awakeStore := devstore.NewStoreAwakener(awakener, cacheStore)
 
 	if ec.device.monitor.inactive.disable {
