@@ -28,16 +28,16 @@ func TestResolveStoreResolveHandleResolveFiltered(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*100)
 	defer cancel()
 
-	mdnsAddr := "foo.bar.local"
+	mdnsHostName := "foo.bar.local"
 	netAddr := net.IPAddr{IP: net.IPv4(192, 168, 4, 2)}
 
-	addr, err := store.Resolve(ctx, mdnsAddr)
+	addr, err := store.Resolve(ctx, mdnsHostName)
 	require.Nil(t, addr)
 	require.Equal(t, status.StatusTimeout, err)
 
-	store.HandleResolve(mdnsAddr, &netAddr)
+	store.HandleResolve(mdnsHostName, &netAddr)
 
-	addr, err = store.Resolve(ctx, mdnsAddr)
+	addr, err = store.Resolve(ctx, mdnsHostName)
 	require.Nil(t, addr)
 	require.Equal(t, status.StatusTimeout, err)
 }
@@ -48,13 +48,13 @@ func TestResolveStoreResolveHandleResolve(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*100)
 	defer cancel()
 
-	mdnsAddr := "foo.bar.local"
+	mdnsHostName := "foo.bar.local"
 	netAddr := net.IPAddr{IP: net.IPv4(192, 168, 4, 2)}
 
-	store.Add(mdnsAddr)
-	store.HandleResolve(mdnsAddr, &netAddr)
+	store.Add(mdnsHostName)
+	store.HandleResolve(mdnsHostName, &netAddr)
 
-	addr, err := store.Resolve(ctx, mdnsAddr)
+	addr, err := store.Resolve(ctx, mdnsHostName)
 	require.Nil(t, err)
 	require.Equal(t, netAddr.String(), addr.String())
 }
@@ -62,17 +62,17 @@ func TestResolveStoreResolveHandleResolve(t *testing.T) {
 func TestResolveStoreResolveHandleResolveAsync(t *testing.T) {
 	store := NewResolveStore()
 
-	mdnsAddr := "foo.bar.local"
+	mdnsHostName := "foo.bar.local"
 	netAddr := net.IPAddr{IP: net.IPv4(192, 168, 4, 2)}
 
-	store.Add(mdnsAddr)
+	store.Add(mdnsHostName)
 
 	go func() {
 		time.Sleep(time.Millisecond * 300)
-		store.HandleResolve(mdnsAddr, &netAddr)
+		store.HandleResolve(mdnsHostName, &netAddr)
 	}()
 
-	addr, err := store.Resolve(context.Background(), mdnsAddr)
+	addr, err := store.Resolve(context.Background(), mdnsHostName)
 	require.Nil(t, err)
 	require.Equal(t, netAddr.String(), addr.String())
 }
@@ -83,21 +83,21 @@ func TestResolveStoreResolveHandleResolveAddrChanged(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*100)
 	defer cancel()
 
-	mdnsAddr := "foo.bar.local"
+	mdnsHostName := "foo.bar.local"
 
 	curNetAddr := net.IPAddr{IP: net.IPv4(192, 168, 4, 2)}
 	newNetAddr := net.IPAddr{IP: net.IPv4(192, 168, 4, 1)}
 	require.NotEqual(t, curNetAddr.String(), newNetAddr.String())
 
-	store.Add(mdnsAddr)
+	store.Add(mdnsHostName)
 
-	store.HandleResolve(mdnsAddr, &curNetAddr)
-	addr, err := store.Resolve(ctx, mdnsAddr)
+	store.HandleResolve(mdnsHostName, &curNetAddr)
+	addr, err := store.Resolve(ctx, mdnsHostName)
 	require.Nil(t, err)
 	require.Equal(t, curNetAddr.String(), addr.String())
 
-	store.HandleResolve(mdnsAddr, &newNetAddr)
-	addr, err = store.Resolve(ctx, mdnsAddr)
+	store.HandleResolve(mdnsHostName, &newNetAddr)
+	addr, err = store.Resolve(ctx, mdnsHostName)
 	require.Nil(t, err)
 	require.Equal(t, newNetAddr.String(), addr.String())
 }
@@ -105,18 +105,18 @@ func TestResolveStoreResolveHandleResolveAddrChanged(t *testing.T) {
 func TestResolveStoreResolveAfterRemove(t *testing.T) {
 	store := NewResolveStore()
 
-	mdnsAddr := "foo.bar.local"
+	mdnsHostName := "foo.bar.local"
 	netAddr := net.IPAddr{IP: net.IPv4(192, 168, 4, 2)}
 
-	store.Add(mdnsAddr)
-	store.HandleResolve(mdnsAddr, &netAddr)
+	store.Add(mdnsHostName)
+	store.HandleResolve(mdnsHostName, &netAddr)
 
-	addr, err := store.Resolve(context.Background(), mdnsAddr)
+	addr, err := store.Resolve(context.Background(), mdnsHostName)
 	require.Nil(t, err)
 	require.Equal(t, netAddr.String(), addr.String())
 
-	store.Remove(mdnsAddr)
-	addr, err = store.Resolve(context.Background(), mdnsAddr)
+	store.Remove(mdnsHostName)
+	addr, err = store.Resolve(context.Background(), mdnsHostName)
 	require.Equal(t, status.StatusNoData, err)
 	require.Nil(t, addr)
 }

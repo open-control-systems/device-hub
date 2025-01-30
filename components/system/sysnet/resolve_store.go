@@ -9,7 +9,7 @@ import (
 	"github.com/open-control-systems/device-hub/components/system/syscore"
 )
 
-// ResolveStore caches the result of host resolving.
+// ResolveStore caches the result of hostname resolving.
 type ResolveStore struct {
 	updateCh chan struct{}
 
@@ -31,25 +31,25 @@ func NewResolveStore() *ResolveStore {
 //
 // Remarks:
 //   - Unknown hosts are filtered out.
-func (s *ResolveStore) HandleResolve(host string, addr net.Addr) {
+func (s *ResolveStore) HandleResolve(hostname string, addr net.Addr) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	if _, ok := s.knownHosts[host]; !ok {
+	if _, ok := s.knownHosts[hostname]; !ok {
 		return
 	}
 
-	ra, ok := s.resolvedAddrs[host]
+	ra, ok := s.resolvedAddrs[hostname]
 	if !ok {
-		syscore.LogInf.Printf("resolve-store: addr resolved: host=%s: addr=%s\n",
-			host, addr)
+		syscore.LogInf.Printf("resolve-store: addr resolved: hostname=%s: addr=%s\n",
+			hostname, addr)
 
-		s.resolvedAddrs[host] = addr
+		s.resolvedAddrs[hostname] = addr
 	} else if ra.String() != addr.String() {
-		syscore.LogInf.Printf("resolve-store: addr changed for host=%s: cur=%s new=%s\n",
-			host, ra, addr)
+		syscore.LogInf.Printf("resolve-store: addr changed for hostname=%s: cur=%s new=%s\n",
+			hostname, ra, addr)
 
-		s.resolvedAddrs[host] = addr
+		s.resolvedAddrs[hostname] = addr
 	}
 
 	select {
@@ -58,40 +58,40 @@ func (s *ResolveStore) HandleResolve(host string, addr net.Addr) {
 	}
 }
 
-// Resolve resolves the host address to the network address.
+// Resolve resolves the hostname to the network address.
 //
 // Remarks:
-//   - Resolving an unknown host will always fail.
-func (s *ResolveStore) Resolve(ctx context.Context, host string) (net.Addr, error) {
-	if addr, err := s.getAddr(host); err == nil {
+//   - Resolving an unknown hostname will always fail.
+func (s *ResolveStore) Resolve(ctx context.Context, hostname string) (net.Addr, error) {
+	if addr, err := s.getAddr(hostname); err == nil {
 		return addr, nil
 	}
 
-	return s.waitAddr(ctx, host)
+	return s.waitAddr(ctx, hostname)
 }
 
-// Add adds host to the list of known hosts.
-func (s *ResolveStore) Add(host string) {
+// Add adds hostname to the list of known hosts.
+func (s *ResolveStore) Add(hostname string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	s.knownHosts[host] = struct{}{}
+	s.knownHosts[hostname] = struct{}{}
 }
 
-// Remove removes host from the list of known hosts.
-func (s *ResolveStore) Remove(host string) {
+// Remove removes hostname from the list of known hosts.
+func (s *ResolveStore) Remove(hostname string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	delete(s.knownHosts, host)
-	delete(s.resolvedAddrs, host)
+	delete(s.knownHosts, hostname)
+	delete(s.resolvedAddrs, hostname)
 }
 
-func (s *ResolveStore) getAddr(host string) (net.Addr, error) {
+func (s *ResolveStore) getAddr(hostname string) (net.Addr, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	addr, ok := s.resolvedAddrs[host]
+	addr, ok := s.resolvedAddrs[hostname]
 	if !ok {
 		return nil, status.StatusNoData
 	}
@@ -99,11 +99,11 @@ func (s *ResolveStore) getAddr(host string) (net.Addr, error) {
 	return addr, nil
 }
 
-func (s *ResolveStore) waitAddr(ctx context.Context, host string) (net.Addr, error) {
+func (s *ResolveStore) waitAddr(ctx context.Context, hostname string) (net.Addr, error) {
 	for {
 		select {
 		case <-s.updateCh:
-			return s.getAddr(host)
+			return s.getAddr(hostname)
 
 		case <-ctx.Done():
 			return nil, status.StatusTimeout
