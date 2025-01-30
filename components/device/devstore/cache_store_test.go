@@ -290,10 +290,10 @@ func TestCacheStoreAddRemoveResourceNoResponse(t *testing.T) {
 		uri  string
 		desc string
 	}{
-		{"http://devcore.example.com/api/v10", "foo-bar-baz"},
+		{"http://devcore.example.com:123/api/v10", "foo-bar-baz"},
 		{"http://192.1.2.3:8787/api/v3", "foo-bar-baz"},
 		{"https://192.1.2.3:1234", "foo-bar-baz"},
-		{"http://bonsai-growlab.local/api/v1", "foo-bar-baz"},
+		{"http://bonsai-growlab.local:234/api/v1", "foo-bar-baz"},
 	}
 
 	for _, test := range tests {
@@ -476,8 +476,8 @@ func TestCacheStoreAddSameDevice(t *testing.T) {
 		require.Nil(t, store.Stop())
 	}()
 
-	require.Nil(t, store.Add("http://foo.bar.com", "foo-bar-com"))
-	require.Equal(t, ErrDeviceExist, store.Add("http://foo.bar.com", "foo-bar-com"))
+	require.Nil(t, store.Add("http://foo.bar.com:123", "foo-bar-com"))
+	require.Equal(t, ErrDeviceExist, store.Add("http://foo.bar.com:123", "foo-bar-com"))
 }
 
 func TestCacheStoreNoopDB(t *testing.T) {
@@ -502,7 +502,7 @@ func TestCacheStoreNoopDB(t *testing.T) {
 		require.Nil(t, store.Stop())
 	}()
 
-	deviceURI := "http://foo.bar.com"
+	deviceURI := "http://foo.bar.com:123"
 	deviceDesc := "foo-bar-com"
 
 	require.Nil(t, store.Add(deviceURI, deviceDesc))
