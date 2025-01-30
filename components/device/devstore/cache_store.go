@@ -275,7 +275,7 @@ func (s *CacheStore) makeNode(uri string, desc string, now time.Time) (*storeNod
 			s.localClock,
 			s.remoteLastClock,
 			uri,
-			u.Host,
+			u.Hostname(),
 			desc,
 		),
 		&logErrorHandler{uri: uri, desc: desc},
