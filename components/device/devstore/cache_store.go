@@ -302,12 +302,12 @@ func (s *CacheStore) newHTTPDevice(
 	localClock syscore.SystemClock,
 	remoteLastClock syscore.SystemClock,
 	uri string,
-	host string,
+	hostname string,
 	desc string,
 ) syssched.Task {
 	remoteCurrClock := htcore.NewSystemClock(
 		ctx,
-		s.makeHTTPClient(stopper, uri, host, desc),
+		s.makeHTTPClient(stopper, uri, hostname, desc),
 		uri+"/system/time",
 		s.params.HTTP.FetchTimeout,
 	)
@@ -318,13 +318,13 @@ func (s *CacheStore) newHTTPDevice(
 	task := devcore.NewPollDevice(
 		htcore.NewURLFetcher(
 			ctx,
-			s.makeHTTPClient(stopper, uri, host, desc),
+			s.makeHTTPClient(stopper, uri, hostname, desc),
 			uri+"/registration",
 			s.params.HTTP.FetchTimeout,
 		),
 		htcore.NewURLFetcher(
 			ctx,
-			s.makeHTTPClient(stopper, uri, host, desc),
+			s.makeHTTPClient(stopper, uri, hostname, desc),
 			uri+"/telemetry",
 			s.params.HTTP.FetchTimeout,
 		),
@@ -344,17 +344,17 @@ func (s *CacheStore) newHTTPDevice(
 func (s *CacheStore) makeHTTPClient(
 	stopper *syssched.FanoutStopper,
 	uri string,
-	host string,
+	hostname string,
 	desc string,
 ) *htcore.HTTPClient {
 	if !strings.Contains(uri, ".local") {
 		return htcore.NewDefaultClient()
 	}
 
-	s.resolveStore.Add(host)
+	s.resolveStore.Add(hostname)
 
 	stopper.Add("resolve-store-"+desc, syssched.FuncStopper(func() error {
-		s.resolveStore.Remove(host)
+		s.resolveStore.Remove(hostname)
 
 		return nil
 	}))
