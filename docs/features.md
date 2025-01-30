@@ -31,6 +31,26 @@ Once the mDNS server is properly configured, it should be possible to access the
 curl device-hub.local:8081/api/v1/system/time
 ```
 
+## mDNS Browser
+
+The device-hub has a bult-in mDNS browser. This allows the device-hub to reach the device in the local network, without explicitly specifying an IP address of the device. For example, it's possible to add the following device to the device-hub:
+
+```
+# URI - http://bonsai-growlab.local:80/api/v1
+# Description - home-plant
+curl device-hub.local/api/v1/device/add?uri=http://bonsai-growlab.local:80/api/v1&desc=home-plant
+```
+
+`bonsai-growlab.local` is the mDNS hostname of the device. device-hub can automatically resolve it to the actual IP address. If the IP address of the device changes in the future, the device-hub will automatically handle it.
+
+For more advanced configuration, see the following device-hub CLI options:
+
+```
+--mdns-browse-iface string          Comma-separated list of network interfaces for the mDNS lookup (empty for all interfaces)
+--mdns-browse-interval string       How often to perform mDNS lookup over local network (default "1m")
+--mdns-browse-timeout string        How long to perform a single mDNS lookup over local network (default "30s")
+```
+
 ## mDNS Auto Discovery
 
 The device-hub can automatically add devices based on the mDNS txt records.
