@@ -2,23 +2,31 @@ package sysmdns
 
 import "net"
 
-// Service is a single mDNS service discovered on the local network.
-type Service interface {
-	// Instance returns mDNS service instance name, e.g. "Bonsai GrowLab Firmware".
-	Instance() string
+// Service is mDNS service.
+type Service struct {
+	// Instance is the mDNS service instance name, e.g. "Bonsai GrowLab Firmware".
+	Instance string
 
-	// Service returns mDNS service name, e.g. "_http._tcp".
-	Name() string
+	// Name is the mDNS service name, e.g. "_http._tcp".
+	Name string
 
-	// Hostname returns host machine DNS name, e.g. "bonsai-growlab.local".
-	Hostname() string
+	// Hostname is the machine DNS name, e.g. "bonsai-growlab.local".
+	Hostname string
 
-	// Port returns service port, e.g. 80.
-	Port() int
+	// Port is the mDNS service port, e.g. 80.
+	Port int
 
-	// TxtRecords returns service txt records, e.g. ["api_base_path=/api/", "api_version=v1"]
-	TxtRecords() []string
+	// TxtRecords are the service txt records, e.g. ["api_base_path=/api/"]
+	TxtRecords []string
 
-	// Host machine IP addresses. Service should contain at least one resolved IP address.
-	Addrs() []net.IP
+	// AddrsIPv4 are the IPv4 addresses for the service.
+	AddrsIPv4 []net.IP
+
+	// AddrsIPv6 are the IPv6 addresses for the service.
+	AddrsIPv6 []net.IP
+}
+
+// AddTxtRecord adds txt record to the service.
+func (s *Service) AddTxtRecord(key string, value string) {
+	s.TxtRecords = append(s.TxtRecords, key+"="+value)
 }

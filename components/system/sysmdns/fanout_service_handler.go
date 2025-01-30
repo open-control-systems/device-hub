@@ -8,7 +8,7 @@ type FanoutServiceHandler struct {
 }
 
 // HandleService handles mDNS service discovered over local network.
-func (h *FanoutServiceHandler) HandleService(service Service) error {
+func (h *FanoutServiceHandler) HandleService(service *Service) error {
 	for _, handler := range h.handlers {
 		if err := handler.HandleService(service); err != nil {
 			syscore.LogErr.Printf(
