@@ -21,6 +21,9 @@ func NewResolveServiceHandler(handler sysnet.ResolveHandler) *ResolveServiceHand
 // HandleService handles mDNS service discovered over local network.
 func (h *ResolveServiceHandler) HandleService(service *Service) error {
 	addrs := service.AddrsIPv4
+	if len(addrs) == 0 {
+		addrs = service.AddrsIPv6
+	}
 	if len(addrs) != 1 {
 		return status.StatusNotSupported
 	}
