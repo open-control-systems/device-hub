@@ -2,8 +2,6 @@ package devstore
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"fmt"
 	"net/url"
 	"strings"
@@ -121,9 +119,7 @@ func (s *CacheStore) Add(uri string, desc string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	key := hashURI(uri)
-
-	if _, ok := s.nodes[key]; ok {
+	if _, ok := s.nodes[uri]; ok {
 		return ErrDeviceExist
 	}
 
@@ -134,23 +130,7 @@ func (s *CacheStore) Add(uri string, desc string) error {
 		return err
 	}
 
-	if blob, err := s.db.Read(key); err == nil {
-		var item StorageItem
-
-		if _, err := item.Unmarshal(blob.Data); err != nil {
-			return err
-		}
-
-		if item.URI != uri {
-			return fmt.Errorf("failed to save device info: collision")
-		}
-
-		panic(fmt.Sprintf("cache-store: failed to add device: invalid state:"+
-			" uri=%s desc=%s", uri, desc))
-	}
-
 	item := StorageItem{
-		URI:       uri,
 		Desc:      desc,
 		Timestamp: now.Unix(),
 	}
@@ -164,7 +144,7 @@ func (s *CacheStore) Add(uri string, desc string) error {
 		Data: buf,
 	}
 
-	if err := s.db.Write(key, blob); err != nil {
+	if err := s.db.Write(uri, blob); err != nil {
 		return fmt.Errorf("failed to persist device information: uri=%s err=%v", uri, err)
 	}
 
@@ -172,7 +152,7 @@ func (s *CacheStore) Add(uri string, desc string) error {
 		return err
 	}
 
-	s.nodes[key] = node
+	s.nodes[uri] = node
 
 	syscore.LogInf.Printf("cache-store: device added: uri=%s desc=%s\n", uri, desc)
 
@@ -184,14 +164,12 @@ func (s *CacheStore) Remove(uri string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	key := hashURI(uri)
-
-	node, ok := s.nodes[key]
+	node, ok := s.nodes[uri]
 	if !ok {
 		return status.StatusNoData
 	}
 
-	if err := s.db.Remove(key); err != nil {
+	if err := s.db.Remove(uri); err != nil {
 		return err
 	}
 
@@ -199,7 +177,7 @@ func (s *CacheStore) Remove(uri string) error {
 		return fmt.Errorf("failed to stop device: uri=%s err=%v", uri, err)
 	}
 
-	delete(s.nodes, key)
+	delete(s.nodes, uri)
 
 	syscore.LogInf.Printf("cache-store: device removed: uri=%s\n", uri)
 
@@ -226,13 +204,14 @@ func (s *CacheStore) GetDesc() []StoreItem {
 }
 
 func (s *CacheStore) restoreNodes() {
-	var failedKeys []string
+	var unrestoredURIs []string
 
-	err := s.db.ForEach(func(key string, blob stcore.Blob) error {
-		if err := s.restoreNode(key, blob); err != nil {
-			syscore.LogErr.Println("cache-store: failed to restore device:", err)
+	err := s.db.ForEach(func(uri string, blob stcore.Blob) error {
+		if err := s.restoreNode(uri, blob); err != nil {
+			syscore.LogErr.Printf("cache-store: failed to restore device: uri=%s err=%v\n",
+				uri, err)
 
-			failedKeys = append(failedKeys, key)
+			unrestoredURIs = append(unrestoredURIs, uri)
 		}
 
 		return nil
@@ -241,35 +220,35 @@ func (s *CacheStore) restoreNodes() {
 		panic("failed to restore nodes: invalid state: " + err.Error())
 	}
 
-	if len(failedKeys) == 0 {
+	if len(unrestoredURIs) == 0 {
 		return
 	}
 
-	for _, key := range failedKeys {
-		if err := s.db.Remove(key); err != nil {
-			syscore.LogErr.Printf("cache-store: failed to remove unrestored key=%s: %v\n",
-				key, err)
+	for _, uri := range unrestoredURIs {
+		if err := s.db.Remove(uri); err != nil {
+			syscore.LogErr.Printf("cache-store: failed to remove unrestored device:"+
+				" uri=%s err=%v\n", uri, err)
 		} else {
-			syscore.LogErr.Printf("cache-store: unrestored key=%s removed\n", key)
+			syscore.LogErr.Printf("cache-store: unrestored device removed: uri=%s\n", uri)
 		}
 	}
 }
 
-func (s *CacheStore) restoreNode(key string, blob stcore.Blob) error {
+func (s *CacheStore) restoreNode(uri string, blob stcore.Blob) error {
 	var item StorageItem
 	if _, err := item.Unmarshal(blob.Data); err != nil {
 		return err
 	}
 
-	node, err := s.makeNode(item.URI, item.Desc, time.Unix(item.Timestamp, 0))
+	node, err := s.makeNode(uri, item.Desc, time.Unix(item.Timestamp, 0))
 	if err != nil {
 		return err
 	}
 
-	s.nodes[key] = node
+	s.nodes[uri] = node
 
 	syscore.LogInf.Printf("cache-store: device restored: uri=%s desc=%s\n",
-		item.URI, item.Desc)
+		uri, item.Desc)
 
 	return nil
 }
@@ -434,9 +413,4 @@ func (s *storeNode) stop() error {
 	s.cancelFunc()
 
 	return s.stopper.Stop()
-}
-
-func hashURI(uri string) string {
-	hash := sha256.Sum256([]byte(uri))
-	return hex.EncodeToString(hash[:])
 }

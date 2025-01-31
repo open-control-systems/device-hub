@@ -547,7 +547,6 @@ func TestCacheStoreRestoreUnsupportedScheme(t *testing.T) {
 	deviceDesc := "foo-bar-com"
 
 	storageItem := StorageItem{
-		URI:       deviceURI,
 		Desc:      deviceDesc,
 		Timestamp: time.Now().Unix(),
 	}
