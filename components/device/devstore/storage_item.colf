@@ -1,7 +1,6 @@
 package devstore
 
 type StorageItem struct {
-	URI       text
 	Desc      text
 	Timestamp int64
 }

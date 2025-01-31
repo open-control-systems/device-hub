@@ -40,8 +40,6 @@ func (i ColferTail) Error() string {
 }
 
 type StorageItem struct {
-	URI string
-
 	Desc string
 
 	Timestamp int64
@@ -52,22 +50,8 @@ type StorageItem struct {
 func (o *StorageItem) MarshalTo(buf []byte) int {
 	var i int
 
-	if l := len(o.URI); l != 0 {
-		buf[i] = 0
-		i++
-		x := uint(l)
-		for x >= 0x80 {
-			buf[i] = byte(x | 0x80)
-			x >>= 7
-			i++
-		}
-		buf[i] = byte(x)
-		i++
-		i += copy(buf[i:], o.URI)
-	}
-
 	if l := len(o.Desc); l != 0 {
-		buf[i] = 1
+		buf[i] = 0
 		i++
 		x := uint(l)
 		for x >= 0x80 {
@@ -83,10 +67,10 @@ func (o *StorageItem) MarshalTo(buf []byte) int {
 	if v := o.Timestamp; v != 0 {
 		x := uint64(v)
 		if v >= 0 {
-			buf[i] = 2
+			buf[i] = 1
 		} else {
 			x = ^x + 1
-			buf[i] = 2 | 0x80
+			buf[i] = 1 | 0x80
 		}
 		i++
 		for n := 0; x >= 0x80 && n < 8; n++ {
@@ -107,15 +91,6 @@ func (o *StorageItem) MarshalTo(buf []byte) int {
 // The error return option is devstore.ColferMax.
 func (o *StorageItem) MarshalLen() (int, error) {
 	l := 1
-
-	if x := len(o.URI); x != 0 {
-		if x > ColferSizeMax {
-			return 0, ColferMax(fmt.Sprintf("colfer: field devstore.StorageItem.URI exceeds %d bytes", ColferSizeMax))
-		}
-		for l += x + 2; x >= 0x80; l++ {
-			x >>= 7
-		}
-	}
 
 	if x := len(o.Desc); x != 0 {
 		if x > ColferSizeMax {
@@ -190,45 +165,6 @@ func (o *StorageItem) Unmarshal(data []byte) (int, error) {
 		}
 
 		if x > uint(ColferSizeMax) {
-			return 0, ColferMax(fmt.Sprintf("colfer: devstore.StorageItem.URI size %d exceeds %d bytes", x, ColferSizeMax))
-		}
-
-		start := i
-		i += int(x)
-		if i >= len(data) {
-			goto eof
-		}
-		o.URI = string(data[start:i])
-
-		header = data[i]
-		i++
-	}
-
-	if header == 1 {
-		if i >= len(data) {
-			goto eof
-		}
-		x := uint(data[i])
-		i++
-
-		if x >= 0x80 {
-			x &= 0x7f
-			for shift := uint(7); ; shift += 7 {
-				if i >= len(data) {
-					goto eof
-				}
-				b := uint(data[i])
-				i++
-
-				if b < 0x80 {
-					x |= b << shift
-					break
-				}
-				x |= (b & 0x7f) << shift
-			}
-		}
-
-		if x > uint(ColferSizeMax) {
 			return 0, ColferMax(fmt.Sprintf("colfer: devstore.StorageItem.Desc size %d exceeds %d bytes", x, ColferSizeMax))
 		}
 
@@ -243,7 +179,7 @@ func (o *StorageItem) Unmarshal(data []byte) (int, error) {
 		i++
 	}
 
-	if header == 2 {
+	if header == 1 {
 		if i+1 >= len(data) {
 			i++
 			goto eof
@@ -271,7 +207,7 @@ func (o *StorageItem) Unmarshal(data []byte) (int, error) {
 
 		header = data[i]
 		i++
-	} else if header == 2|0x80 {
+	} else if header == 1|0x80 {
 		if i+1 >= len(data) {
 			i++
 			goto eof
