@@ -330,7 +330,7 @@ func (p *appPipeline) configureMdnsServer(server *htcore.Server, ec *envContext)
 			Name:       sysmdns.ServiceName(sysmdns.ServiceTypeHTTP, sysmdns.ProtoTCP),
 			Hostname:   ec.mdns.server.hostname,
 			Port:       server.Port(),
-			TxtRecords: []string{"api_base_path=/api/v1"},
+			TxtRecords: []string{"api=/api/v1"},
 		},
 	}
 
