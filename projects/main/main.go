@@ -30,10 +30,13 @@ import (
 )
 
 type envContext struct {
-	dbParams stinfluxdb.DBParams
 	logPath  string
 	cacheDir string
 	port     int
+
+	storage struct {
+		influxdb stinfluxdb.DBParams
+	}
 
 	device struct {
 		HTTP struct {
@@ -283,7 +286,7 @@ func (p *appPipeline) createCacheStore(
 		return nil, err
 	}
 
-	storagePipeline := stinfluxdb.NewPipeline(ctx, ec.dbParams)
+	storagePipeline := stinfluxdb.NewPipeline(ctx, ec.storage.influxdb)
 	p.stopper.Add("storage-influxdb-pipeline", storagePipeline)
 	p.starter.Add(storagePipeline)
 
@@ -401,16 +404,16 @@ func newAppPipeline() *appPipeline {
 }
 
 func prepareEnvironment(ec *envContext) error {
-	if ec.dbParams.URL == "" {
+	if ec.storage.influxdb.URL == "" {
 		return fmt.Errorf("influxdb URL is required")
 	}
-	if ec.dbParams.Org == "" {
+	if ec.storage.influxdb.Org == "" {
 		return fmt.Errorf("influxdb org is required")
 	}
-	if ec.dbParams.Bucket == "" {
+	if ec.storage.influxdb.Bucket == "" {
 		return fmt.Errorf("influxdb bucket is required")
 	}
-	if ec.dbParams.Token == "" {
+	if ec.storage.influxdb.Token == "" {
 		return fmt.Errorf("influxdb token is required")
 	}
 
@@ -472,13 +475,13 @@ func main() {
 	cmd.Flags().StringVar(&envContext.cacheDir, "cache-dir", "", "device-hub cache directory")
 	cmd.Flags().StringVar(&envContext.logPath, "log-path", "", "device-hub log file path")
 
-	cmd.Flags().StringVar(&envContext.dbParams.URL, "influxdb-url", "", "influxdb URL")
-	cmd.Flags().StringVar(&envContext.dbParams.Org, "influxdb-org", "", "influxdb Org")
-
-	cmd.Flags().StringVar(&envContext.dbParams.Token, "influxdb-api-token", "",
+	cmd.Flags().StringVar(&envContext.storage.influxdb.URL, "storage-influxdb-url", "",
+		"influxdb URL")
+	cmd.Flags().StringVar(&envContext.storage.influxdb.Org, "storage-influxdb-org", "",
+		"influxdb Org")
+	cmd.Flags().StringVar(&envContext.storage.influxdb.Token, "storage-influxdb-api-token", "",
 		"influxdb API token")
-
-	cmd.Flags().StringVar(&envContext.dbParams.Bucket, "influxdb-bucket", "",
+	cmd.Flags().StringVar(&envContext.storage.influxdb.Bucket, "storage-influxdb-bucket", "",
 		"influxdb bucket")
 
 	cmd.Flags().StringVar(
