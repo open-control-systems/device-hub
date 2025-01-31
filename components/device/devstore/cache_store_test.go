@@ -508,3 +508,78 @@ func TestCacheStoreNoopDB(t *testing.T) {
 	require.Nil(t, store.Add(deviceURI, deviceDesc))
 	require.Nil(t, store.Remove(deviceURI))
 }
+
+func TestCacheStoreRestoreInvalidFormat(t *testing.T) {
+	deviceURI := "http://foo.bar.com:123"
+	deviceDesc := "foo-bar-com"
+
+	db := newTestCacheStoreDB()
+	require.Nil(t, db.Write(deviceURI, stcore.Blob{Data: []byte(deviceDesc)}))
+	_, err := db.Read(deviceURI)
+	require.Nil(t, err)
+
+	clock := &testCacheStoreClock{}
+	handler := newTestCacheStoreDataHandler()
+
+	storeParams := CacheStoreParams{}
+	storeParams.HTTP.FetchInterval = time.Millisecond * 100
+	storeParams.HTTP.FetchTimeout = time.Millisecond * 100
+
+	store := NewCacheStore(
+		context.Background(),
+		clock,
+		clock,
+		handler,
+		db,
+		sysnet.NewResolveStore(),
+		storeParams,
+	)
+	defer func() {
+		require.Nil(t, store.Stop())
+	}()
+
+	_, err = db.Read(deviceURI)
+	require.Equal(t, status.StatusNoData, err)
+}
+
+func TestCacheStoreRestoreUnsupportedScheme(t *testing.T) {
+	deviceURI := "ftp://foo.bar.com:123"
+	deviceDesc := "foo-bar-com"
+
+	storageItem := StorageItem{
+		URI:       deviceURI,
+		Desc:      deviceDesc,
+		Timestamp: time.Now().Unix(),
+	}
+	buf, err := storageItem.MarshalBinary()
+	require.Nil(t, err)
+	require.NotNil(t, buf)
+
+	db := newTestCacheStoreDB()
+	require.Nil(t, db.Write(deviceURI, stcore.Blob{Data: buf}))
+	_, err = db.Read(deviceURI)
+	require.Nil(t, err)
+
+	clock := &testCacheStoreClock{}
+	handler := newTestCacheStoreDataHandler()
+
+	storeParams := CacheStoreParams{}
+	storeParams.HTTP.FetchInterval = time.Millisecond * 100
+	storeParams.HTTP.FetchTimeout = time.Millisecond * 100
+
+	store := NewCacheStore(
+		context.Background(),
+		clock,
+		clock,
+		handler,
+		db,
+		sysnet.NewResolveStore(),
+		storeParams,
+	)
+	defer func() {
+		require.Nil(t, store.Stop())
+	}()
+
+	_, err = db.Read(deviceURI)
+	require.Equal(t, status.StatusNoData, err)
+}
