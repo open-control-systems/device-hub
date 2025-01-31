@@ -75,9 +75,7 @@ func NewCacheStore(
 		nodes:           make(map[string]*storeNode),
 	}
 
-	if err := s.restoreNodes(); err != nil {
-		syscore.LogErr.Printf("cache-store: failed to restore nodes: %v\n", err)
-	}
+	s.restoreNodes()
 
 	return s
 }
@@ -227,26 +225,53 @@ func (s *CacheStore) GetDesc() []StoreItem {
 	return items
 }
 
-func (s *CacheStore) restoreNodes() error {
-	return s.db.ForEach(func(key string, blob stcore.Blob) error {
-		var item StorageItem
-		if _, err := item.Unmarshal(blob.Data); err != nil {
-			return err
+func (s *CacheStore) restoreNodes() {
+	var failedKeys []string
+
+	err := s.db.ForEach(func(key string, blob stcore.Blob) error {
+		if err := s.restoreNode(key, blob); err != nil {
+			syscore.LogErr.Println("cache-store: failed to restore device:", err)
+
+			failedKeys = append(failedKeys, key)
 		}
-
-		node, err := s.makeNode(item.URI, item.Desc, time.Unix(item.Timestamp, 0))
-		if err != nil {
-			panic(fmt.Sprintf("cache-store: failed to restore device:"+
-				"uri=%s desc=%s err=%v", item.URI, item.Desc, err))
-		}
-
-		s.nodes[key] = node
-
-		syscore.LogInf.Printf("cache-store: device restored: uri=%s desc=%s\n",
-			item.URI, item.Desc)
 
 		return nil
 	})
+	if err != nil {
+		panic("failed to restore nodes: invalid state: " + err.Error())
+	}
+
+	if len(failedKeys) == 0 {
+		return
+	}
+
+	for _, key := range failedKeys {
+		if err := s.db.Remove(key); err != nil {
+			syscore.LogErr.Printf("cache-store: failed to remove unrestored key=%s: %v\n",
+				key, err)
+		} else {
+			syscore.LogErr.Printf("cache-store: unrestored key=%s removed\n", key)
+		}
+	}
+}
+
+func (s *CacheStore) restoreNode(key string, blob stcore.Blob) error {
+	var item StorageItem
+	if _, err := item.Unmarshal(blob.Data); err != nil {
+		return err
+	}
+
+	node, err := s.makeNode(item.URI, item.Desc, time.Unix(item.Timestamp, 0))
+	if err != nil {
+		return err
+	}
+
+	s.nodes[key] = node
+
+	syscore.LogInf.Printf("cache-store: device restored: uri=%s desc=%s\n",
+		item.URI, item.Desc)
+
+	return nil
 }
 
 func (s *CacheStore) makeNode(uri string, desc string, now time.Time) (*storeNode, error) {
