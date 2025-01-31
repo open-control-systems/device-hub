@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"net/url"
 	"strings"
@@ -138,9 +137,9 @@ func (s *CacheStore) Add(uri string, desc string) error {
 	}
 
 	if blob, err := s.db.Read(key); err == nil {
-		var item storageItem
+		var item StorageItem
 
-		if err := json.Unmarshal(blob.Data, &item); err != nil {
+		if _, err := item.Unmarshal(blob.Data); err != nil {
 			return err
 		}
 
@@ -152,13 +151,13 @@ func (s *CacheStore) Add(uri string, desc string) error {
 			" uri=%s desc=%s", uri, desc))
 	}
 
-	item := storageItem{
+	item := StorageItem{
 		URI:       uri,
 		Desc:      desc,
 		Timestamp: now.Unix(),
 	}
 
-	buf, err := json.Marshal(item)
+	buf, err := item.MarshalBinary()
 	if err != nil {
 		return err
 	}
@@ -230,8 +229,8 @@ func (s *CacheStore) GetDesc() []StoreItem {
 
 func (s *CacheStore) restoreNodes() error {
 	return s.db.ForEach(func(key string, blob stcore.Blob) error {
-		var item storageItem
-		if err := json.Unmarshal(blob.Data, &item); err != nil {
+		var item StorageItem
+		if _, err := item.Unmarshal(blob.Data); err != nil {
 			return err
 		}
 
@@ -390,12 +389,6 @@ func parseDeviceType(scheme string) deviceType {
 	}
 
 	return deviceTypeUnsupported
-}
-
-type storageItem struct {
-	URI       string `json:"uri"`
-	Desc      string `json:"desc"`
-	Timestamp int64  `json:"ts"`
 }
 
 type storeNode struct {
