@@ -26,7 +26,7 @@ type Store interface {
 	//   - ErrDeviceExist is returned if the device already exists.
 	//
 	// URI examples:
-	//   - http://bonsai-growlab.local/api/v1. mDNS HTTP API
+	//   - http://bonsai-growlab.local:12345/api/v1. mDNS HTTP API
 	//   - http://192.168.4.1:17321. Static IP address.
 	//
 	// Desc examples:
