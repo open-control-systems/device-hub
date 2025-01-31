@@ -1,3 +1,16 @@
+## Device Data Storage
+
+The device-hub can store telemetry data from the IoT devices in the persistent storage.
+
+For the influxdb database, see the following device-hub CLI options:
+
+```
+--storage-influxdb-api-token string                influxdb API token
+--storage-influxdb-bucket string                   influxdb bucket
+--storage-influxdb-org string                      influxdb Org
+--storage-influxdb-url string                      influxdb URL
+```
+
 ## System Time Synchronization
 
 The device-hub can automatically synchronize the UNIX time for the remote device.
