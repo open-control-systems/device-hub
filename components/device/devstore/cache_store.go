@@ -140,11 +140,7 @@ func (s *CacheStore) Add(uri string, desc string) error {
 		return err
 	}
 
-	blob := stcore.Blob{
-		Data: buf,
-	}
-
-	if err := s.db.Write(uri, blob); err != nil {
+	if err := s.db.Write(uri, buf); err != nil {
 		return fmt.Errorf("failed to persist device information: uri=%s err=%v", uri, err)
 	}
 
@@ -206,8 +202,8 @@ func (s *CacheStore) GetDesc() []StoreItem {
 func (s *CacheStore) restoreNodes() {
 	var unrestoredURIs []string
 
-	err := s.db.ForEach(func(uri string, blob stcore.Blob) error {
-		if err := s.restoreNode(uri, blob); err != nil {
+	err := s.db.ForEach(func(uri string, buf []byte) error {
+		if err := s.restoreNode(uri, buf); err != nil {
 			syscore.LogErr.Printf("cache-store: failed to restore device: uri=%s err=%v\n",
 				uri, err)
 
@@ -234,9 +230,9 @@ func (s *CacheStore) restoreNodes() {
 	}
 }
 
-func (s *CacheStore) restoreNode(uri string, blob stcore.Blob) error {
+func (s *CacheStore) restoreNode(uri string, buf []byte) error {
 	var item StorageItem
-	if _, err := item.Unmarshal(blob.Data); err != nil {
+	if _, err := item.Unmarshal(buf); err != nil {
 		return err
 	}
 

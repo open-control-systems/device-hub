@@ -39,9 +39,9 @@ func NewBboltDBBucket(db *bbolt.DB, bucket string) *BboltDBBucket {
 	}
 }
 
-// Read reads a blob of data from bbolt database.
-func (b *BboltDBBucket) Read(key string) (Blob, error) {
-	blob := Blob{}
+// Read reads data from the database bucket.
+func (b *BboltDBBucket) Read(key string) ([]byte, error) {
+	var ret []byte
 
 	err := b.db.View(func(tx *bbolt.Tx) error {
 		bucket := tx.Bucket([]byte(b.bucket))
@@ -49,35 +49,33 @@ func (b *BboltDBBucket) Read(key string) (Blob, error) {
 			return status.StatusNoData
 		}
 
-		data := bucket.Get([]byte(key))
-		if data == nil {
+		ret = bucket.Get([]byte(key))
+		if ret == nil {
 			return status.StatusNoData
 		}
-
-		blob.Data = data
 
 		return nil
 	})
 	if err != nil {
-		return Blob{}, err
+		return []byte{}, err
 	}
 
-	return blob, nil
+	return ret, nil
 }
 
-// Write write a blob to the database bucket.
-func (b *BboltDBBucket) Write(key string, blob Blob) error {
+// Write writes data to the database bucket.
+func (b *BboltDBBucket) Write(key string, value []byte) error {
 	return b.db.Update(func(tx *bbolt.Tx) error {
 		bucket, err := tx.CreateBucketIfNotExists([]byte(b.bucket))
 		if err != nil {
 			return err
 		}
 
-		return bucket.Put([]byte(key), blob.Data)
+		return bucket.Put([]byte(key), value)
 	})
 }
 
-// Remove removes a blob from the database bucket.
+// Remove removes data from the database bucket.
 func (b *BboltDBBucket) Remove(key string) error {
 	return b.db.Update(func(tx *bbolt.Tx) error {
 		bucket := tx.Bucket([]byte(b.bucket))
@@ -89,8 +87,8 @@ func (b *BboltDBBucket) Remove(key string) error {
 	})
 }
 
-// ForEach iterates over all blobs in the database bucket.
-func (b *BboltDBBucket) ForEach(fn func(key string, b Blob) error) error {
+// ForEach iterates over all key-value pairs in the database bucket.
+func (b *BboltDBBucket) ForEach(fn func(string, []byte) error) error {
 	return b.db.View(func(tx *bbolt.Tx) error {
 		bucket := tx.Bucket([]byte(b.bucket))
 		if bucket == nil {
@@ -98,7 +96,7 @@ func (b *BboltDBBucket) ForEach(fn func(key string, b Blob) error) error {
 		}
 
 		return bucket.ForEach(func(k, v []byte) error {
-			return fn(string(k), Blob{Data: v})
+			return fn(string(k), v)
 		})
 	})
 }
