@@ -153,7 +153,7 @@ func (p *appPipeline) createDeviceStore(
 		return nil, err
 	}
 
-	awakeStore := devstore.NewStoreAwakener(awakener, cacheStore)
+	awakeStore := devstore.NewAwakeStore(awakener, cacheStore)
 
 	if ec.device.monitor.inactive.disable {
 		return awakeStore, nil
