@@ -1,8 +1,6 @@
 package stcore
 
 import (
-	"fmt"
-
 	"github.com/open-control-systems/device-hub/components/status"
 	"go.etcd.io/bbolt"
 )
@@ -96,7 +94,7 @@ func (b *BboltDBBucket) ForEach(fn func(key string, b Blob) error) error {
 	return b.db.View(func(tx *bbolt.Tx) error {
 		bucket := tx.Bucket([]byte(b.bucket))
 		if bucket == nil {
-			return fmt.Errorf("bucket=%s not found", b.bucket)
+			return nil
 		}
 
 		return bucket.ForEach(func(k, v []byte) error {
