@@ -6,12 +6,12 @@ import "github.com/open-control-systems/device-hub/components/status"
 type NoopDB struct{}
 
 // Read is non-operational.
-func (*NoopDB) Read(_ string) (Blob, error) {
-	return Blob{}, status.StatusNoData
+func (*NoopDB) Read(_ string) ([]byte, error) {
+	return []byte{}, status.StatusNoData
 }
 
 // Write is non-operational.
-func (*NoopDB) Write(_ string, _ Blob) error {
+func (*NoopDB) Write(_ string, _ []byte) error {
 	return nil
 }
 
@@ -21,7 +21,7 @@ func (*NoopDB) Remove(_ string) error {
 }
 
 // ForEach is non-operational.
-func (*NoopDB) ForEach(_ func(key string, b Blob) error) error {
+func (*NoopDB) ForEach(_ func(key string, b []byte) error) error {
 	return nil
 }
 

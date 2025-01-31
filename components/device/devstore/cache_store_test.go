@@ -18,29 +18,27 @@ import (
 )
 
 type testCacheStoreDB struct {
-	data map[string]stcore.Blob
+	data map[string][]byte
 }
 
 func newTestCacheStoreDB() *testCacheStoreDB {
 	return &testCacheStoreDB{
-		data: make(map[string]stcore.Blob),
+		data: make(map[string][]byte),
 	}
 }
 
-func (d *testCacheStoreDB) Read(key string) (stcore.Blob, error) {
-	blob, ok := d.data[key]
+func (d *testCacheStoreDB) Read(key string) ([]byte, error) {
+	buf, ok := d.data[key]
 	if !ok {
-		return stcore.Blob{}, status.StatusNoData
+		return []byte{}, status.StatusNoData
 	}
 
-	return blob, nil
+	return buf, nil
 }
 
-func (d *testCacheStoreDB) Write(key string, blob stcore.Blob) error {
-	b := stcore.Blob{}
-
-	b.Data = make([]byte, len(blob.Data))
-	copy(b.Data, blob.Data)
+func (d *testCacheStoreDB) Write(key string, buf []byte) error {
+	b := make([]byte, len(buf))
+	copy(b, buf)
 
 	d.data[key] = b
 
@@ -53,7 +51,7 @@ func (d *testCacheStoreDB) Remove(key string) error {
 	return nil
 }
 
-func (d *testCacheStoreDB) ForEach(fn func(key string, b stcore.Blob) error) error {
+func (d *testCacheStoreDB) ForEach(fn func(key string, b []byte) error) error {
 	for k, v := range d.data {
 		if err := fn(k, v); err != nil {
 			return err
@@ -514,7 +512,7 @@ func TestCacheStoreRestoreInvalidFormat(t *testing.T) {
 	deviceDesc := "foo-bar-com"
 
 	db := newTestCacheStoreDB()
-	require.Nil(t, db.Write(deviceURI, stcore.Blob{Data: []byte(deviceDesc)}))
+	require.Nil(t, db.Write(deviceURI, []byte(deviceDesc)))
 	_, err := db.Read(deviceURI)
 	require.Nil(t, err)
 
@@ -555,7 +553,7 @@ func TestCacheStoreRestoreUnsupportedScheme(t *testing.T) {
 	require.NotNil(t, buf)
 
 	db := newTestCacheStoreDB()
-	require.Nil(t, db.Write(deviceURI, stcore.Blob{Data: buf}))
+	require.Nil(t, db.Write(deviceURI, buf))
 	_, err = db.Read(deviceURI)
 	require.Nil(t, err)
 
