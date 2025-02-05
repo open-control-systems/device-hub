@@ -29,7 +29,7 @@ import (
 	"github.com/open-control-systems/device-hub/components/system/syssched"
 )
 
-type envContext struct {
+type appOptions struct {
 	logPath  string
 	cacheDir string
 	port     int
@@ -79,7 +79,7 @@ type appPipeline struct {
 	systemClock syscore.SystemClock
 }
 
-func (p *appPipeline) start(ec *envContext) error {
+func (p *appPipeline) start(opts *appOptions) error {
 	appContext, cancelFunc := signal.NotifyContext(context.Background(),
 		syscall.SIGHUP,
 		syscall.SIGINT,
@@ -93,17 +93,17 @@ func (p *appPipeline) start(ec *envContext) error {
 	fanoutServiceHandler := &sysmdns.FanoutServiceHandler{}
 	fanoutServiceHandler.Add(resolveServiceHandler)
 
-	mdnsBrowseAwakener, err := p.createMdnsBrowser(appContext, fanoutServiceHandler, ec)
+	mdnsBrowseAwakener, err := p.createMdnsBrowser(appContext, fanoutServiceHandler, opts)
 	if err != nil {
 		return err
 	}
 
-	deviceStore, err := p.createDeviceStore(appContext, resolveStore, mdnsBrowseAwakener, ec)
+	deviceStore, err := p.createDeviceStore(appContext, resolveStore, mdnsBrowseAwakener, opts)
 	if err != nil {
 		return err
 	}
 
-	if !ec.mdns.autodiscovery.disable {
+	if !opts.mdns.autodiscovery.disable {
 		storeMdnsHandler := devstore.NewStoreMdnsHandler(deviceStore)
 		fanoutServiceHandler.Add(storeMdnsHandler)
 	}
@@ -111,7 +111,7 @@ func (p *appPipeline) start(ec *envContext) error {
 	mux := http.NewServeMux()
 
 	server, err := htcore.NewServer(mux, htcore.ServerParams{
-		Port: ec.port,
+		Port: opts.port,
 	})
 	if err != nil {
 		return err
@@ -126,8 +126,8 @@ func (p *appPipeline) start(ec *envContext) error {
 		devstore.NewStoreHTTPHandler(deviceStore),
 	)
 
-	if !ec.mdns.server.disable {
-		if err := p.configureMdnsServer(server, ec); err != nil {
+	if !opts.mdns.server.disable {
+		if err := p.configureMdnsServer(server, opts); err != nil {
 			return err
 		}
 	}
@@ -149,21 +149,21 @@ func (p *appPipeline) createDeviceStore(
 	ctx context.Context,
 	resolveStore *sysnet.ResolveStore,
 	awakener syssched.Awakener,
-	ec *envContext,
+	opts *appOptions,
 ) (devstore.Store, error) {
-	cacheStore, err := p.createCacheStore(ctx, resolveStore, ec)
+	cacheStore, err := p.createCacheStore(ctx, resolveStore, opts)
 	if err != nil {
 		return nil, err
 	}
 
 	awakeStore := devstore.NewAwakeStore(awakener, cacheStore)
 
-	if ec.device.monitor.inactive.disable {
+	if opts.device.monitor.inactive.disable {
 		return awakeStore, nil
 	}
 
 	inactiveMaxInterval, err :=
-		time.ParseDuration(ec.device.monitor.inactive.maxInterval)
+		time.ParseDuration(opts.device.monitor.inactive.maxInterval)
 	if err != nil {
 		return nil, err
 	}
@@ -174,7 +174,7 @@ func (p *appPipeline) createDeviceStore(
 	}
 
 	inactiveUpdateInterval, err :=
-		time.ParseDuration(ec.device.monitor.inactive.updateInterval)
+		time.ParseDuration(opts.device.monitor.inactive.updateInterval)
 	if err != nil {
 		return nil, err
 	}
@@ -209,9 +209,9 @@ func (p *appPipeline) createDeviceStore(
 func (p *appPipeline) createMdnsBrowser(
 	ctx context.Context,
 	fanoutServiceHandler *sysmdns.FanoutServiceHandler,
-	ec *envContext,
+	opts *appOptions,
 ) (syssched.Awakener, error) {
-	mdnsBrowseInterval, err := time.ParseDuration(ec.mdns.browse.interval)
+	mdnsBrowseInterval, err := time.ParseDuration(opts.mdns.browse.interval)
 	if err != nil {
 		return nil, err
 	}
@@ -219,7 +219,7 @@ func (p *appPipeline) createMdnsBrowser(
 		return nil, errors.New("mDNS browse interval can't be less than 1s")
 	}
 
-	mdnsBrowseTimeout, err := time.ParseDuration(ec.mdns.browse.timeout)
+	mdnsBrowseTimeout, err := time.ParseDuration(opts.mdns.browse.timeout)
 	if err != nil {
 		return nil, err
 	}
@@ -227,7 +227,7 @@ func (p *appPipeline) createMdnsBrowser(
 		return nil, errors.New("mDNS browse timeout can't be less than 1s")
 	}
 
-	filteredIfaces, err := parseIfaceOption(ec.mdns.browse.iface)
+	filteredIfaces, err := parseIfaceOption(opts.mdns.browse.iface)
 	if err != nil {
 		return nil, err
 	}
@@ -263,9 +263,9 @@ func (p *appPipeline) createMdnsBrowser(
 func (p *appPipeline) createCacheStore(
 	ctx context.Context,
 	resolveStore *sysnet.ResolveStore,
-	ec *envContext,
+	opts *appOptions,
 ) (*devstore.CacheStore, error) {
-	fetchInterval, err := time.ParseDuration(ec.device.HTTP.fetchInterval)
+	fetchInterval, err := time.ParseDuration(opts.device.HTTP.fetchInterval)
 	if err != nil {
 		return nil, err
 	}
@@ -273,7 +273,7 @@ func (p *appPipeline) createCacheStore(
 		return nil, errors.New("HTTP device fetch interval can't be less than 1ms")
 	}
 
-	fetchTimeout, err := time.ParseDuration(ec.device.HTTP.fetchTimeout)
+	fetchTimeout, err := time.ParseDuration(opts.device.HTTP.fetchTimeout)
 	if err != nil {
 		return nil, err
 	}
@@ -285,12 +285,12 @@ func (p *appPipeline) createCacheStore(
 	cacheStoreParams.HTTP.FetchInterval = fetchInterval
 	cacheStoreParams.HTTP.FetchTimeout = fetchTimeout
 
-	db, err := p.createDB(ec)
+	db, err := p.createDB(opts)
 	if err != nil {
 		return nil, err
 	}
 
-	storagePipeline := stinfluxdb.NewPipeline(ctx, ec.storage.influxdb)
+	storagePipeline := stinfluxdb.NewPipeline(ctx, opts.storage.influxdb)
 	p.stopper.Add("storage-influxdb-pipeline", storagePipeline)
 	p.starter.Add(storagePipeline)
 
@@ -309,14 +309,14 @@ func (p *appPipeline) createCacheStore(
 	return cacheStore, nil
 }
 
-func (p *appPipeline) createDB(ec *envContext) (stcore.DB, error) {
-	if ec.cacheDir == "" {
+func (p *appPipeline) createDB(opts *appOptions) (stcore.DB, error) {
+	if opts.cacheDir == "" {
 		return &stcore.NoopDB{}, nil
 	}
 
-	ec.cacheDir = path.Join(ec.cacheDir, "bbolt.db")
+	opts.cacheDir = path.Join(opts.cacheDir, "bbolt.db")
 
-	bboltDB, err := stcore.NewBboltDB(ec.cacheDir, &bbolt.Options{
+	bboltDB, err := stcore.NewBboltDB(opts.cacheDir, &bbolt.Options{
 		Timeout: time.Second * 5,
 	})
 	if err != nil {
@@ -330,18 +330,18 @@ func (p *appPipeline) createDB(ec *envContext) (stcore.DB, error) {
 	return stcore.NewBboltDBBucket(bboltDB, "device_bucket"), nil
 }
 
-func (p *appPipeline) configureMdnsServer(server *htcore.Server, ec *envContext) error {
+func (p *appPipeline) configureMdnsServer(server *htcore.Server, opts *appOptions) error {
 	services := []*sysmdns.Service{
 		{
-			Instance:   ec.mdns.server.instanceName,
+			Instance:   opts.mdns.server.instanceName,
 			Name:       sysmdns.ServiceName(sysmdns.ServiceTypeHTTP, sysmdns.ProtoTCP),
-			Hostname:   ec.mdns.server.hostname,
+			Hostname:   opts.mdns.server.hostname,
 			Port:       server.Port(),
 			TxtRecords: []string{"api=/api/v1"},
 		},
 	}
 
-	filteredIfaces, err := parseIfaceOption(ec.mdns.server.iface)
+	filteredIfaces, err := parseIfaceOption(opts.mdns.server.iface)
 	if err != nil {
 		return err
 	}
@@ -407,22 +407,22 @@ func newAppPipeline() *appPipeline {
 	}
 }
 
-func prepareEnvironment(ec *envContext) error {
-	if ec.storage.influxdb.URL == "" {
+func prepareEnvironment(opts *appOptions) error {
+	if opts.storage.influxdb.URL == "" {
 		return fmt.Errorf("influxdb URL is required")
 	}
-	if ec.storage.influxdb.Org == "" {
+	if opts.storage.influxdb.Org == "" {
 		return fmt.Errorf("influxdb org is required")
 	}
-	if ec.storage.influxdb.Bucket == "" {
+	if opts.storage.influxdb.Bucket == "" {
 		return fmt.Errorf("influxdb bucket is required")
 	}
-	if ec.storage.influxdb.Token == "" {
+	if opts.storage.influxdb.Token == "" {
 		return fmt.Errorf("influxdb token is required")
 	}
 
-	if ec.cacheDir != "" {
-		fi, err := os.Stat(ec.cacheDir)
+	if opts.cacheDir != "" {
+		fi, err := os.Stat(opts.cacheDir)
 		if err != nil {
 			return err
 		}
@@ -432,18 +432,18 @@ func prepareEnvironment(ec *envContext) error {
 		}
 	}
 
-	if ec.logPath == "" {
+	if opts.logPath == "" {
 		return fmt.Errorf("log path is required")
 	}
-	if err := syscore.SetLogFile(ec.logPath); err != nil {
+	if err := syscore.SetLogFile(opts.logPath); err != nil {
 		return err
 	}
 
-	if !ec.mdns.server.disable {
-		if ec.mdns.server.hostname == "" {
+	if !opts.mdns.server.disable {
+		if opts.mdns.server.hostname == "" {
 			return errors.New("mDNS server hostname can't be empty")
 		}
-		if ec.mdns.server.instanceName == "" {
+		if opts.mdns.server.instanceName == "" {
 			return errors.New("mDNS server instance name can't be empty")
 		}
 	}
@@ -452,8 +452,8 @@ func prepareEnvironment(ec *envContext) error {
 }
 
 func main() {
-	appPipeline := newAppPipeline()
-	envContext := &envContext{}
+	pipeline := newAppPipeline()
+	options := &appOptions{}
 
 	cmd := &cobra.Command{
 		Use:           "device-hub",
@@ -462,106 +462,106 @@ func main() {
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		PreRunE: func(_ *cobra.Command, _ []string) error {
-			return prepareEnvironment(envContext)
+			return prepareEnvironment(options)
 		},
 		RunE: func(_ *cobra.Command, _ []string) error {
-			if err := appPipeline.start(envContext); err != nil {
+			if err := pipeline.start(options); err != nil {
 				return err
 			}
 
-			return appPipeline.stop()
+			return pipeline.stop()
 		},
 	}
 
-	cmd.Flags().IntVar(&envContext.port, "http-port", 0,
+	cmd.Flags().IntVar(&options.port, "http-port", 0,
 		"HTTP server port (0 for random port)")
 
-	cmd.Flags().StringVar(&envContext.cacheDir, "cache-dir", "", "device-hub cache directory")
-	cmd.Flags().StringVar(&envContext.logPath, "log-path", "", "device-hub log file path")
+	cmd.Flags().StringVar(&options.cacheDir, "cache-dir", "", "device-hub cache directory")
+	cmd.Flags().StringVar(&options.logPath, "log-path", "", "device-hub log file path")
 
-	cmd.Flags().StringVar(&envContext.storage.influxdb.URL, "storage-influxdb-url", "",
+	cmd.Flags().StringVar(&options.storage.influxdb.URL, "storage-influxdb-url", "",
 		"influxdb URL")
-	cmd.Flags().StringVar(&envContext.storage.influxdb.Org, "storage-influxdb-org", "",
+	cmd.Flags().StringVar(&options.storage.influxdb.Org, "storage-influxdb-org", "",
 		"influxdb Org")
-	cmd.Flags().StringVar(&envContext.storage.influxdb.Token, "storage-influxdb-api-token", "",
+	cmd.Flags().StringVar(&options.storage.influxdb.Token, "storage-influxdb-api-token", "",
 		"influxdb API token")
-	cmd.Flags().StringVar(&envContext.storage.influxdb.Bucket, "storage-influxdb-bucket", "",
+	cmd.Flags().StringVar(&options.storage.influxdb.Bucket, "storage-influxdb-bucket", "",
 		"influxdb bucket")
 
 	cmd.Flags().StringVar(
-		&envContext.device.HTTP.fetchInterval,
+		&options.device.HTTP.fetchInterval,
 		"device-http-fetch-interval", "5s",
 		"HTTP device data fetch interval",
 	)
 	cmd.Flags().StringVar(
-		&envContext.device.HTTP.fetchTimeout,
+		&options.device.HTTP.fetchTimeout,
 		"device-http-fetch-timeout", "5s",
 		"HTTP device data fetch timeout",
 	)
 
 	cmd.Flags().StringVar(
-		&envContext.device.monitor.inactive.maxInterval,
+		&options.device.monitor.inactive.maxInterval,
 		"device-monitor-inactive-max-interval", "2m",
 		"How long it's allowed for a device to be inactive",
 	)
 
 	cmd.Flags().StringVar(
-		&envContext.device.monitor.inactive.updateInterval,
+		&options.device.monitor.inactive.updateInterval,
 		"device-monitor-inactive-update-interval", "10s",
 		"How often to check for a device inactivity",
 	)
 
 	cmd.Flags().BoolVar(
-		&envContext.device.monitor.inactive.disable,
+		&options.device.monitor.inactive.disable,
 		"device-monitor-inactive-disable", false,
 		"Disable device inactivity monitoring",
 	)
 
 	cmd.Flags().StringVar(
-		&envContext.mdns.browse.interval,
+		&options.mdns.browse.interval,
 		"mdns-browse-interval", "40s",
 		"How often to perform mDNS lookup over local network",
 	)
 
 	cmd.Flags().StringVar(
-		&envContext.mdns.browse.timeout,
+		&options.mdns.browse.timeout,
 		"mdns-browse-timeout", "10s",
 		"How long to perform a single mDNS lookup over local network",
 	)
 
 	cmd.Flags().StringVar(
-		&envContext.mdns.browse.iface,
+		&options.mdns.browse.iface,
 		"mdns-browse-iface", "",
 		"Comma-separated list of network interfaces for the mDNS lookup"+
 			" (empty for all interfaces)",
 	)
 
 	cmd.Flags().BoolVar(
-		&envContext.mdns.autodiscovery.disable,
+		&options.mdns.autodiscovery.disable,
 		"mdns-autodiscovery-disable", false,
 		"Disable automatic device discovery on the local network",
 	)
 
 	cmd.Flags().BoolVar(
-		&envContext.mdns.server.disable,
+		&options.mdns.server.disable,
 		"mdns-server-disable", false,
 		"Disable mDNS server",
 	)
 
 	cmd.Flags().StringVar(
-		&envContext.mdns.server.hostname,
+		&options.mdns.server.hostname,
 		"mdns-server-hostname", "device-hub",
 		"mDNS server hostname",
 	)
 
 	cmd.Flags().StringVar(
-		&envContext.mdns.server.instanceName,
+		&options.mdns.server.instanceName,
 		"mdns-server-instance", "Device Hub Software",
 		"mDNS server instance name",
 	)
 
 	cmd.Flags().StringVar(
-		&envContext.mdns.server.iface,
+		&options.mdns.server.iface,
 		"mdns-server-iface", "",
 		"Comma-separated list of network interfaces for the mDNS server"+
 			" (empty for all interfaces)",
