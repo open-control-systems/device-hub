@@ -346,6 +346,7 @@ func (s *CacheStore) newHTTPDevice(
 		),
 		dataHandler,
 		clockSynchronizer,
+		&devcore.BasicTimeVerifier{},
 	)
 
 	if s.aliveMonitor != nil {
