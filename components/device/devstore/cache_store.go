@@ -293,7 +293,9 @@ func (s *CacheStore) makeNodeHTTP(
 			u.Hostname(),
 		),
 		&logErrorHandler{uri: uri, desc: desc},
-		s.params.HTTP.FetchInterval,
+		syssched.AsyncTaskRunnerParams{
+			UpdateInterval: s.params.HTTP.FetchInterval,
+		},
 	)
 
 	stopper.Add(desc, runner)
