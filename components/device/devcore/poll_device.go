@@ -14,6 +14,7 @@ type PollDevice struct {
 	telemetryFetcher    Fetcher
 	dataHandler         DataHandler
 	timeSynchronizer    TimeSynchronizer
+	timeVerifier        TimeVerifier
 	deviceID            string
 }
 
@@ -29,12 +30,14 @@ func NewPollDevice(
 	telemetryFetcher Fetcher,
 	dataHandler DataHandler,
 	timeSynchronizer TimeSynchronizer,
+	timeVerifier TimeVerifier,
 ) *PollDevice {
 	return &PollDevice{
 		registrationFetcher: registrationFetcher,
 		telemetryFetcher:    telemetryFetcher,
 		dataHandler:         dataHandler,
 		timeSynchronizer:    timeSynchronizer,
+		timeVerifier:        timeVerifier,
 	}
 }
 
@@ -116,7 +119,7 @@ func (d *PollDevice) validateTimestamp(js JSON) error {
 		return fmt.Errorf("poll-device: failed to fetch data: invalid type for timestamp")
 	}
 
-	if timestamp == -1 {
+	if !d.timeVerifier.VerifyTime(int64(timestamp)) {
 		syscore.LogInf.Printf("start syncing time for device: ID=%v\n", d.deviceID)
 
 		if err := d.timeSynchronizer.SyncTime(); err != nil {

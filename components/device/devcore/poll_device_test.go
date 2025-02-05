@@ -127,6 +127,7 @@ func TestPollDeviceRun(t *testing.T) {
 		&telemetryFetcher,
 		&dataHandler,
 		&timeSynchronizer,
+		&BasicTimeVerifier{},
 	)
 
 	require.Equal(t, "", dataHandler.registration.DeviceID)
@@ -170,6 +171,7 @@ func TestPollDeviceRunFetchRegistrationError(t *testing.T) {
 		&telemetryFetcher,
 		&dataHandler,
 		&timeSynchronizer,
+		&BasicTimeVerifier{},
 	)
 
 	require.Equal(t, "", dataHandler.registration.DeviceID)
@@ -215,6 +217,7 @@ func TestPollDeviceRunFetchTelemetryError(t *testing.T) {
 		&telemetryFetcher,
 		&dataHandler,
 		&timeSynchronizer,
+		&BasicTimeVerifier{},
 	)
 
 	require.Equal(t, "", dataHandler.registration.DeviceID)
@@ -259,6 +262,7 @@ func TestPollDeviceRunEmptyDeviceId(t *testing.T) {
 		&telemetryFetcher,
 		&dataHandler,
 		&timeSynchronizer,
+		&BasicTimeVerifier{},
 	)
 
 	require.Equal(t, "", dataHandler.registration.DeviceID)
@@ -303,6 +307,7 @@ func TestPollDeviceRunInvalidTimestampRegistration(t *testing.T) {
 		&telemetryFetcher,
 		&dataHandler,
 		&timeSynchronizer,
+		&BasicTimeVerifier{},
 	)
 
 	require.Equal(t, "", dataHandler.registration.DeviceID)
@@ -351,6 +356,7 @@ func TestPollDeviceRunInvalidTimestampTelemetry(t *testing.T) {
 		&telemetryFetcher,
 		&dataHandler,
 		&timeSynchronizer,
+		&BasicTimeVerifier{},
 	)
 
 	require.Equal(t, "", dataHandler.registration.DeviceID)
@@ -397,6 +403,7 @@ func TestPollDeviceRunDataHandlerFailed(t *testing.T) {
 		&telemetryFetcher,
 		&dataHandler,
 		&timeSynchronizer,
+		&BasicTimeVerifier{},
 	)
 
 	require.Equal(t, "", dataHandler.registration.DeviceID)
@@ -440,6 +447,7 @@ func TestPollDeviceRunDeviceIdChanged(t *testing.T) {
 		&telemetryFetcher,
 		&dataHandler,
 		&timeSynchronizer,
+		&BasicTimeVerifier{},
 	)
 
 	require.Equal(t, "", dataHandler.registration.DeviceID)
@@ -491,6 +499,7 @@ func TestPollDeviceSynchronizeTimeTelemetryAndRegistration(t *testing.T) {
 		&telemetryFetcher,
 		&dataHandler,
 		&timeSynchronizer,
+		&BasicTimeVerifier{},
 	)
 
 	require.NotNil(t, device.Run())
@@ -545,6 +554,7 @@ func TestPollDeviceSynchronizeTimeRegistration(t *testing.T) {
 		&telemetryFetcher,
 		&dataHandler,
 		&timeSynchronizer,
+		&BasicTimeVerifier{},
 	)
 
 	require.NotNil(t, device.Run())
@@ -594,6 +604,7 @@ func TestPollDeviceSynchronizeTimeTelemetry(t *testing.T) {
 		&telemetryFetcher,
 		&dataHandler,
 		&timeSynchronizer,
+		&BasicTimeVerifier{},
 	)
 
 	require.NotNil(t, device.Run())
@@ -644,6 +655,7 @@ func TestPollDeviceSynchronizeTimeError(t *testing.T) {
 		&telemetryFetcher,
 		&dataHandler,
 		&timeSynchronizer,
+		&BasicTimeVerifier{},
 	)
 
 	require.NotNil(t, device.Run())
