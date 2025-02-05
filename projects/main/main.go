@@ -195,7 +195,9 @@ func (p *appPipeline) createDeviceStore(
 		ctx,
 		aliveMonitor,
 		aliveMonitor,
-		inactiveUpdateInterval,
+		syssched.AsyncTaskRunnerParams{
+			UpdateInterval: inactiveUpdateInterval,
+		},
 	)
 
 	p.stopper.Add("device-alive-monitor-runner", aliveMonitorRunner)
@@ -248,7 +250,9 @@ func (p *appPipeline) createMdnsBrowser(
 		ctx,
 		mdnsBrowser,
 		mdnsBrowser,
-		mdnsBrowseInterval,
+		syssched.AsyncTaskRunnerParams{
+			UpdateInterval: mdnsBrowseInterval,
+		},
 	)
 	p.stopper.Add("mdns-zeroconf-browser-runner", mdnsBrowserRunner)
 	p.starter.Add(mdnsBrowserRunner)

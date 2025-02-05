@@ -5,14 +5,23 @@ import (
 	"time"
 )
 
+// AsyncTaskRunnerParams represents various configuration options for AsyncTaskRunner.
+type AsyncTaskRunnerParams struct {
+	// UpdateInterval is how often a task should be run.
+	UpdateInterval time.Duration
+
+	// ExitOnSuccess is to stop asynchronous task processing after first successful execution.
+	ExitOnSuccess bool
+}
+
 // AsyncTaskRunner periodically runs task in the standalone goroutine.
 type AsyncTaskRunner struct {
-	ctx            context.Context
-	doneCh         chan struct{}
-	awakeCh        chan struct{}
-	task           Task
-	handler        ErrorHandler
-	updateInterval time.Duration
+	ctx     context.Context
+	doneCh  chan struct{}
+	awakeCh chan struct{}
+	task    Task
+	handler ErrorHandler
+	params  AsyncTaskRunnerParams
 }
 
 // NewAsyncTaskRunner is an initialization of AsyncTaskRunner.
@@ -20,15 +29,15 @@ func NewAsyncTaskRunner(
 	ctx context.Context,
 	task Task,
 	handler ErrorHandler,
-	updateInterval time.Duration,
+	params AsyncTaskRunnerParams,
 ) *AsyncTaskRunner {
 	return &AsyncTaskRunner{
-		ctx:            ctx,
-		doneCh:         make(chan struct{}),
-		awakeCh:        make(chan struct{}, 1),
-		task:           task,
-		handler:        handler,
-		updateInterval: updateInterval,
+		ctx:     ctx,
+		doneCh:  make(chan struct{}),
+		awakeCh: make(chan struct{}, 1),
+		task:    task,
+		handler: handler,
+		params:  params,
 	}
 }
 
@@ -57,18 +66,24 @@ func (r *AsyncTaskRunner) Awake() {
 func (r *AsyncTaskRunner) run() {
 	defer close(r.doneCh)
 
-	ticker := time.NewTicker(r.updateInterval)
+	ticker := time.NewTicker(r.params.UpdateInterval)
 	defer ticker.Stop()
 
-	r.runTask()
+	if r.runTask() {
+		return
+	}
 
 	for {
 		select {
 		case <-ticker.C:
-			r.runTask()
+			if r.runTask() {
+				return
+			}
 
 		case <-r.awakeCh:
-			r.runTask()
+			if r.runTask() {
+				return
+			}
 
 		case <-r.ctx.Done():
 			return
@@ -76,10 +91,14 @@ func (r *AsyncTaskRunner) run() {
 	}
 }
 
-func (r *AsyncTaskRunner) runTask() {
+func (r *AsyncTaskRunner) runTask() bool {
 	if err := r.task.Run(); err != nil {
 		if r.handler != nil {
 			r.handler.HandleError(err)
 		}
+
+		return false
 	}
+
+	return r.params.ExitOnSuccess
 }
