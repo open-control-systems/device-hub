@@ -39,7 +39,7 @@ type appOptions struct {
 	}
 
 	device struct {
-		HTTP struct {
+		http struct {
 			fetchTimeout  string
 			fetchInterval string
 		}
@@ -265,7 +265,7 @@ func (p *appPipeline) createCacheStore(
 	resolveStore *sysnet.ResolveStore,
 	opts *appOptions,
 ) (*devstore.CacheStore, error) {
-	fetchInterval, err := time.ParseDuration(opts.device.HTTP.fetchInterval)
+	fetchInterval, err := time.ParseDuration(opts.device.http.fetchInterval)
 	if err != nil {
 		return nil, err
 	}
@@ -273,7 +273,7 @@ func (p *appPipeline) createCacheStore(
 		return nil, errors.New("HTTP device fetch interval can't be less than 1ms")
 	}
 
-	fetchTimeout, err := time.ParseDuration(opts.device.HTTP.fetchTimeout)
+	fetchTimeout, err := time.ParseDuration(opts.device.http.fetchTimeout)
 	if err != nil {
 		return nil, err
 	}
@@ -489,12 +489,12 @@ func main() {
 		"influxdb bucket")
 
 	cmd.Flags().StringVar(
-		&options.device.HTTP.fetchInterval,
+		&options.device.http.fetchInterval,
 		"device-http-fetch-interval", "5s",
 		"HTTP device data fetch interval",
 	)
 	cmd.Flags().StringVar(
-		&options.device.HTTP.fetchTimeout,
+		&options.device.http.fetchTimeout,
 		"device-http-fetch-timeout", "5s",
 		"HTTP device data fetch timeout",
 	)
