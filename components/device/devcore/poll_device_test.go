@@ -84,7 +84,7 @@ type testTimeSynchronizer struct {
 	callCount int
 }
 
-func (s *testTimeSynchronizer) Synchronize() error {
+func (s *testTimeSynchronizer) SyncTime() error {
 	s.callCount++
 
 	if s.err != nil {

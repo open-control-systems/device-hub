@@ -50,7 +50,7 @@ func TestSystemClockSynchronizerSynchronizeLocalError(t *testing.T) {
 	}
 
 	synchronizer := NewSystemClockSynchronizer(local, remoteLast, remoteCurr)
-	require.Equal(t, status.StatusError, synchronizer.Synchronize())
+	require.Equal(t, status.StatusError, synchronizer.SyncTime())
 }
 
 func TestSystemClockSynchronizerSynchronizeRemoteLastError(t *testing.T) {
@@ -71,7 +71,7 @@ func TestSystemClockSynchronizerSynchronizeRemoteLastError(t *testing.T) {
 	}
 
 	synchronizer := NewSystemClockSynchronizer(local, remoteLast, remoteCurr)
-	require.Equal(t, status.StatusError, synchronizer.Synchronize())
+	require.Equal(t, status.StatusError, synchronizer.SyncTime())
 }
 
 func TestSystemClockSynchronizerSynchronizeRemoteLastAheadOfLocal(t *testing.T) {
@@ -95,7 +95,7 @@ func TestSystemClockSynchronizerSynchronizeRemoteLastAheadOfLocal(t *testing.T) 
 	}
 
 	synchronizer := NewSystemClockSynchronizer(local, remoteLast, remoteCurr)
-	require.Equal(t, status.StatusError, synchronizer.Synchronize())
+	require.Equal(t, status.StatusError, synchronizer.SyncTime())
 }
 
 func TestSystemClockSynchronizerSynchronizeRemoteCurrError(t *testing.T) {
@@ -120,7 +120,7 @@ func TestSystemClockSynchronizerSynchronizeRemoteCurrError(t *testing.T) {
 	}
 
 	synchronizer := NewSystemClockSynchronizer(local, remoteLast, remoteCurr)
-	require.Equal(t, status.StatusError, synchronizer.Synchronize())
+	require.Equal(t, status.StatusError, synchronizer.SyncTime())
 }
 
 func TestSystemClockSynchronizerSynchronizeRemoteCurrAheadOfLocal(t *testing.T) {
@@ -146,7 +146,7 @@ func TestSystemClockSynchronizerSynchronizeRemoteCurrAheadOfLocal(t *testing.T) 
 	}
 
 	synchronizer := NewSystemClockSynchronizer(local, remoteLast, remoteCurr)
-	require.Equal(t, status.StatusError, synchronizer.Synchronize())
+	require.Equal(t, status.StatusError, synchronizer.SyncTime())
 }
 
 func TestSystemClockSynchronizerSynchronizeRemoteSetTimestampError(t *testing.T) {
@@ -172,7 +172,7 @@ func TestSystemClockSynchronizerSynchronizeRemoteSetTimestampError(t *testing.T)
 	}
 
 	synchronizer := NewSystemClockSynchronizer(local, remoteLast, remoteCurr)
-	require.Equal(t, status.StatusNotSupported, synchronizer.Synchronize())
+	require.Equal(t, status.StatusNotSupported, synchronizer.SyncTime())
 }
 
 func TestSystemClockSynchronizerSynchronize(t *testing.T) {
@@ -197,7 +197,7 @@ func TestSystemClockSynchronizerSynchronize(t *testing.T) {
 	}
 
 	synchronizer := NewSystemClockSynchronizer(local, remoteLast, remoteCurr)
-	require.Nil(t, synchronizer.Synchronize())
+	require.Nil(t, synchronizer.SyncTime())
 	require.Equal(t, remoteLastTimestamp, remoteLast.timestamp)
 	require.Equal(t, localTimestamp, local.timestamp)
 	require.Equal(t, localTimestamp, remoteCurr.timestamp)
