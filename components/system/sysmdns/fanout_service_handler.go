@@ -11,8 +11,7 @@ type FanoutServiceHandler struct {
 func (h *FanoutServiceHandler) HandleService(service *Service) error {
 	for _, handler := range h.handlers {
 		if err := handler.HandleService(service); err != nil {
-			syscore.LogErr.Printf(
-				"fanout-service-handler: failed to handle mDNS service: %v\n", err)
+			syscore.LogErr.Printf("failed to handle mDNS service: %v\n", err)
 		}
 	}
 

@@ -16,8 +16,7 @@ func (s *FanoutStopper) Add(id string, stopper Stopper) {
 func (s *FanoutStopper) Stop() error {
 	for _, node := range s.nodes {
 		if err := node.s.Stop(); err != nil {
-			syscore.LogErr.Printf(
-				"fanout-stopper: failed to stop: id=%s err=%v\n", node.id, err)
+			syscore.LogErr.Printf("failed to stop: id=%s err=%v\n", node.id, err)
 		}
 	}
 

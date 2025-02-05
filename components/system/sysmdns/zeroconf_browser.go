@@ -87,7 +87,7 @@ func (*ZeroconfBrowser) Stop() error {
 
 // HandleError handles browsing errors.
 func (b *ZeroconfBrowser) HandleError(err error) {
-	syscore.LogErr.Printf("mdns-zeroconf-browser: browsing failed: service=%s domain=%s: %v\n",
+	syscore.LogErr.Printf("browsing failed: service=%s domain=%s: %v\n",
 		b.params.Service, b.params.Domain, err)
 }
 
@@ -103,7 +103,7 @@ func (b *ZeroconfBrowser) handleEntry(entry *zeroconf.ServiceEntry) {
 	}
 
 	if err := b.handler.HandleService(service); err != nil {
-		syscore.LogWrn.Printf("mdns-zeroconf-browser: failed to handle service: service=%s"+
-			" domain=%s err=%v\n", b.params.Service, b.params.Domain, err)
+		syscore.LogWrn.Printf("failed to handle service: service=%s domain=%s err=%v\n",
+			b.params.Service, b.params.Domain, err)
 	}
 }
