@@ -41,12 +41,12 @@ func (s *ResolveStore) HandleResolve(hostname string, addr net.Addr) {
 
 	ra, ok := s.resolvedAddrs[hostname]
 	if !ok {
-		syscore.LogInf.Printf("resolve-store: addr resolved: hostname=%s: addr=%s\n",
+		syscore.LogInf.Printf("addr resolved: hostname=%s: addr=%s\n",
 			hostname, addr)
 
 		s.resolvedAddrs[hostname] = addr
 	} else if ra.String() != addr.String() {
-		syscore.LogInf.Printf("resolve-store: addr changed for hostname=%s: cur=%s new=%s\n",
+		syscore.LogInf.Printf("addr changed for hostname=%s: cur=%s new=%s\n",
 			hostname, ra, addr)
 
 		s.resolvedAddrs[hostname] = addr

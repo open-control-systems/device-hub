@@ -56,8 +56,8 @@ func (s *SystemClockSynchronizer) Synchronize() error {
 
 	if localTs < remoteCurrTs {
 		LogWrn.Printf(
-			"system-clock-synchronizer: unable to sync: current remote is ahead of local: "+
-				"local=%v remote=%v", localTs, remoteCurrTs)
+			"unable to sync: current remote is ahead of local local=%v remote=%v\n",
+			localTs, remoteCurrTs)
 
 		return status.StatusError
 	}

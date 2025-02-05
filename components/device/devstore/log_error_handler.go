@@ -8,6 +8,6 @@ type logErrorHandler struct {
 }
 
 func (h *logErrorHandler) HandleError(err error) {
-	syscore.LogErr.Printf("device-error-handler: failed to handle device data:"+
-		" uri=%s desc=%s err=%v\n", h.uri, h.desc, err)
+	syscore.LogErr.Printf("failed to handle device data: uri=%s desc=%s err=%v\n",
+		h.uri, h.desc, err)
 }

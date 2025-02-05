@@ -7,11 +7,11 @@ import (
 
 var (
 	// LogInf logs informational events.
-	LogInf = log.New(os.Stderr, "inf:", log.LstdFlags)
+	LogInf = log.New(os.Stderr, "inf: ", log.LstdFlags)
 	// LogWrn logs warning events.
-	LogWrn = log.New(os.Stderr, "wrn:", log.LstdFlags)
+	LogWrn = log.New(os.Stderr, "wrn: ", log.LstdFlags)
 	// LogErr logs error events.
-	LogErr = log.New(os.Stderr, "err:", log.LstdFlags)
+	LogErr = log.New(os.Stderr, "err: ", log.LstdFlags)
 )
 
 // SetLogFile setups a log file for all loggers.
