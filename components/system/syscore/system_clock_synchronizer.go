@@ -29,8 +29,8 @@ func NewSystemClockSynchronizer(
 	}
 }
 
-// Synchronize synchronizes the UNIX time between local and remote resources.
-func (s *SystemClockSynchronizer) Synchronize() error {
+// SyncTime synchronizes the UNIX time between local and remote resources.
+func (s *SystemClockSynchronizer) SyncTime() error {
 	localTs, err := s.local.GetTimestamp()
 	if err != nil {
 		return err
