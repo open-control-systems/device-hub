@@ -29,7 +29,7 @@ func NewPipeline(
 	writeClient := dbClient.WriteAPIBlocking(params.Org, params.Bucket)
 	queryClient := dbClient.QueryAPI(params.Org)
 
-	clock := newSystemClock(ctx, queryClient, time.Second*5, params)
+	clock := newSystemClock(ctx, queryClient, params.Bucket, time.Second*5)
 
 	return &Pipeline{
 		dbClient: dbClient,

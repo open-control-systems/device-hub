@@ -13,8 +13,8 @@ import (
 
 type systemClock struct {
 	restoreUpdateInterval time.Duration
-	params                DBParams
 	ctx                   context.Context
+	bucket                string
 	client                api.QueryAPI
 
 	doneCh chan struct{}
@@ -27,12 +27,12 @@ type systemClock struct {
 func newSystemClock(
 	ctx context.Context,
 	client api.QueryAPI,
+	bucket string,
 	restoreUpdateInterval time.Duration,
-	params DBParams,
 ) *systemClock {
 	return &systemClock{
 		restoreUpdateInterval: restoreUpdateInterval,
-		params:                params,
+		bucket:                bucket,
 		ctx:                   ctx,
 		client:                client,
 		doneCh:                make(chan struct{}),
@@ -131,7 +131,7 @@ func (c *systemClock) readTimestamp() (int64, error) {
 	  |> aggregateWindow(every: 10m, fn: last, createEmpty: false)
 	  |> keep(columns: ["_time"])
 	  |> sort(columns: ["_time"], desc: true)
-	  |> limit(n: 1)`, c.params.Bucket, "telemetry")
+	  |> limit(n: 1)`, c.bucket, "telemetry")
 
 	result, err := c.client.Query(c.ctx, query)
 	if err != nil {
