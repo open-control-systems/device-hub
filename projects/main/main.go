@@ -51,6 +51,10 @@ type appOptions struct {
 				updateInterval string
 			}
 		}
+
+		timeSync struct {
+			maxDriftInterval string
+		}
 	}
 
 	mdns struct {
@@ -281,9 +285,24 @@ func (p *appPipeline) createCacheStore(
 		return nil, errors.New("HTTP device fetch timeout can't be less than 1ms")
 	}
 
+	var maxDriftInterval time.Duration
+
+	if opts.device.timeSync.maxDriftInterval != "" {
+		interval, err := time.ParseDuration(opts.device.timeSync.maxDriftInterval)
+		if err != nil {
+			return nil, err
+		}
+		if interval < time.Second {
+			return nil, errors.New("--device-time-sync-drift-interval can't be less than 1s")
+		}
+
+		maxDriftInterval = interval
+	}
+
 	cacheStoreParams := devstore.CacheStoreParams{}
 	cacheStoreParams.HTTP.FetchInterval = fetchInterval
 	cacheStoreParams.HTTP.FetchTimeout = fetchTimeout
+	cacheStoreParams.TimeSync.MaxDriftInterval = maxDriftInterval
 
 	db, err := p.createDB(opts)
 	if err != nil {
@@ -515,6 +534,13 @@ func main() {
 		&options.device.monitor.inactive.disable,
 		"device-monitor-inactive-disable", false,
 		"Disable device inactivity monitoring",
+	)
+
+	cmd.Flags().StringVar(
+		&options.device.timeSync.maxDriftInterval,
+		"device-time-sync-drift-interval", "5s",
+		"Maximum allowed time drift between local and device UNIX time"+
+			" (empty to disable drift check)",
 	)
 
 	cmd.Flags().StringVar(

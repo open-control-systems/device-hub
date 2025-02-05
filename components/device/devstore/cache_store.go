@@ -26,6 +26,12 @@ type CacheStoreParams struct {
 		// FetchTimeout - how long to wait for the response from the device.
 		FetchTimeout time.Duration
 	}
+
+	TimeSync struct {
+		// MaxDriftInterval is a maximum allowed time difference between local
+		// and device UNIX time.
+		MaxDriftInterval time.Duration
+	}
 }
 
 // CacheStore allows to cache information about the added devices in the persistent storage.
@@ -331,6 +337,13 @@ func (s *CacheStore) newHTTPDevice(
 	clockSynchronizer := syscore.NewSystemClockSynchronizer(
 		localClock, remoteLastClock, remoteCurrClock)
 
+	var clockVerifier devcore.TimeVerifier
+	if maxDriftInterval := s.params.TimeSync.MaxDriftInterval; maxDriftInterval == 0 {
+		clockVerifier = &devcore.BasicTimeVerifier{}
+	} else {
+		clockVerifier = devcore.NewDriftTimeVerifier(localClock, maxDriftInterval)
+	}
+
 	task := devcore.NewPollDevice(
 		htcore.NewURLFetcher(
 			ctx,
@@ -346,7 +359,7 @@ func (s *CacheStore) newHTTPDevice(
 		),
 		dataHandler,
 		clockSynchronizer,
-		&devcore.BasicTimeVerifier{},
+		clockVerifier,
 	)
 
 	if s.aliveMonitor != nil {
