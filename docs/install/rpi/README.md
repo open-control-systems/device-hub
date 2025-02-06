@@ -147,6 +147,8 @@ cd device-hub/projects/main
 
 # Create log directory.
 sudo mkdir -p /var/log/device-hub
+# Create cache directory.
+sudo mkdir -p /var/cache/device-hub
 
 # Build the container.
 docker compose build device-hub
@@ -171,14 +173,14 @@ Ensure that the device implements the following HTTP endpoints:
 #
 # Required fields
 #  - timestamp - valid UNIX timestamp.
-curl http://bonsai-growlab.local/api/v1/telemetry
+curl http://bonsai-growlab.local:80/api/v1/telemetry
 
 # Receive registration data.
 #
 # Required fields
 #  - timestamp - valid UNIX timestamp.
 #  - device_id - unique device identifier, to distinguish one device from another.
-curl http://bonsai-growlab.local/api/v1/registration
+curl http://bonsai-growlab.local:80/api/v1/registration
 ```
 
 The following examples assume that the device-hub URL is the following: `http://localhost:12345`.
