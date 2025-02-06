@@ -87,17 +87,21 @@ sudo apt-get install git
 git clone https://github.com/open-control-systems/device-hub.git
 ```
 
+**Configure influxdb service**
+
+See the following [guide](../../influxdb.md).
+
 **Run influxdb service**
 
 ```bash
 # Replace <username>, <password>, <admin>, <bucket>, <org> with the required credentials.
 # See also https://docs.influxdata.com/influxdb/cloud/reference/key-concepts/data-elements/.
 cd device-hub/projects/main
-INFLUXDB_USERNAME="<username>" \
-INFLUXDB_PASSWORD="<password>" \
-INFLUXDB_ADMIN_TOKEN="<admin_token>" \
-INFLUXDB_BUCKET="<bucket>" \
-INFLUXDB_ORG="<org>" \
+DEVICE_HUB_STORAGE_INFLUXDB_USERNAME="<username>" \
+DEVICE_HUB_STORAGE_INFLUXDB_PASSWORD="<password>" \
+DEVICE_HUB_STORAGE_INFLUXDB_ADMIN_TOKEN="<admin_token>" \
+DEVICE_HUB_STORAGE_INFLUXDB_BUCKET="<bucket>" \
+DEVICE_HUB_STORAGE_INFLUXDB_ORG="<org>" \
 docker compose up influxdb -d
 ```
 
@@ -112,46 +116,6 @@ ssh -L 8086:localhost:8086 dshil@device-hub-rpi.local
 ```
 
 Once the port forwarding is enabled, go to `localhost:8086` in the web-browser, and enter the influxdb credentials, that were last used to run the docker compose service.
-
-**Determine influxdb `org` identifier**
-
-It will be used later to create API tokens for the device-hub.
-
-```bash
-curl http://localhost:8086/api/v2/orgs -H "Authorization: Token <admin_token>"
-```
-
-**Retrieve influxdb API token**
-
-It's an access token for the device-hub.
-
-```bash
-# See also: https://docs.influxdata.com/influxdb/cloud/admin/tokens/create-token/
-curl http://localhost:8086/api/v2/authorizations \
-  -H "Authorization: Token <admin_token>" \
-  -H 'Content-type: application/json' \
-  --data '{
-  "status": "active",
-  "description": "device-hub r/w API token",
-  "orgId": "<org_id>",
-  "permissions": [
-    {
-      "action": "write",
-      "resource": {
-        "type": "buckets"
-      }
-    },
-    {
-      "action": "read",
-      "resource": {
-        "type": "buckets"
-      }
-    }
-  ]
-}'
-```
-
-Save "token" field for later usage.
 
 **Run device-hub**
 
