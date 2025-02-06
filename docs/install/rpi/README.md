@@ -117,6 +117,29 @@ ssh -L 8086:localhost:8086 dshil@device-hub-rpi.local
 
 Once the port forwarding is enabled, go to `localhost:8086` in the web-browser, and enter the influxdb credentials, that were last used to run the docker compose service.
 
+**Set log rotation**
+
+It's worth setting up the rotation of logs for the device-hub to make sure they don't take up too much disk space. See the following [guide](../../logrotate.md).
+
+**Configure system time**
+
+device-hub can automatically synchronize the UNIX time for the remote device. For more details, see the [documentation](../../features.md#System-Time-Synchronization).
+
+**Configure network**
+
+The device-hub relies on the mDNS to receive data from the IoT devices. That's why it's required for the devices and the device-hub to be connected to the same WiFi AP. If you have any issues connecting RPi to the WiFi AP, make sure WiFi AP doesn't force WiFi STA to use [PMF](https://en.wikipedia.org/wiki/IEEE_802.11w-2009).
+
+The following steps assume that [bonsai firmware](https://github.com/open-control-systems/bonsai-firmware) is installed on the device. Due to specific `bonsai-firmware` settings it's necessary for the device-hub to connect to the `bonsai-firmware` WiFi AP to ensure that device-hub can get the data from the device.
+
+```bash
+# Scan the network for the corresponding device's AP.
+sudo nmcli device wifi rescan
+nmcli device wifi list
+
+# Connect to the device's AP.
+sudo nmcli device wifi connect "bonsai-growlab-369C92005E9930A1D" password "bonsai-growlab-369C920"
+```
+
 **Run device-hub**
 
 ```bash
@@ -137,25 +160,6 @@ DEVICE_HUB_LOG_PATH="/var/log/device-hub/app.log" \
 DEVICE_HUB_CACHE_DIR="/var/cache/device-hub" \
 DEVICE_HUB_HTTP_PORT=0 \
 docker compose up device-hub -d
-```
-
-**Configure system time**
-
-device-hub can automatically synchronize the UNIX time for the remote device. For more details, see the [documentation](../../features.md#System-Time-Synchronization).
-
-**Configure network**
-
-The device-hub relies on the mDNS to receive data from the IoT devices. That's why it's required for the devices and the device-hub to be connected to the same WiFi AP. If you have any issues connecting RPi to the WiFi AP, make sure WiFi AP doesn't force WiFi STA to use [PMF](https://en.wikipedia.org/wiki/IEEE_802.11w-2009).
-
-The following steps assume that [bonsai firmware](https://github.com/open-control-systems/bonsai-firmware) is installed on the device. Due to specific `bonsai-firmware` settings it's necessary for the device-hub to connect to the `bonsai-firmware` WiFi AP to ensure that device-hub can get the data from the device.
-
-```bash
-# Scan the network for the corresponding device's AP.
-sudo nmcli device wifi rescan
-nmcli device wifi list
-
-# Connect to the device's AP.
-sudo nmcli device wifi connect "bonsai-growlab-369C92005E9930A1D" password "bonsai-growlab-369C920"
 ```
 
 **Add device to device-hub**
@@ -202,7 +206,3 @@ curl "localhost:12345/api/v1/device/remove?uri=http://bonsai-growlab.local:80/ap
 Open `locahost:8086` in a browser and enter the influxdb credentials. Ensure SSH port forwarding is enabled. Navigate to the Data Explorer, select the required data type, telemetry or registration, then select the device ID. It's also possible to explore the data using the pre-configured [dashboards](../../templates/influxdb). See the example below.
 
 ![InfluxDB Dashboard Example](influxdb_example_dashboard.png)
-
-**Set log rotation**
-
-It's worth setting up the rotation of logs for the device-hub to make sure they don't take up too much disk space. See the following [guide](../../logrotate.md).
