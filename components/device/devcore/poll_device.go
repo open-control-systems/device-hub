@@ -45,20 +45,28 @@ func NewPollDevice(
 func (d *PollDevice) Run() error {
 	registrationData, err := d.fetchRegistration()
 	if err != nil {
-		return fmt.Errorf("fetching registration failed: %v: %w", err, status.StatusError)
+		syscore.LogErr.Printf("fetch registration failed: %v", err)
+
+		return status.StatusError
 	}
 
 	telemetryData, err := d.fetchTelemetry()
 	if err != nil {
-		return fmt.Errorf("fetching telemetry failed: %v: %w", err, status.StatusError)
+		syscore.LogErr.Printf("fetch telemetry failed: %v", err)
+
+		return status.StatusError
 	}
 
 	if err := d.dataHandler.HandleRegistration(d.deviceID, registrationData); err != nil {
-		return fmt.Errorf("handling registration failed: %v: %w", err, status.StatusError)
+		syscore.LogErr.Printf("handle registration failed: %v", err)
+
+		return status.StatusError
 	}
 
 	if err := d.dataHandler.HandleTelemetry(d.deviceID, telemetryData); err != nil {
-		return fmt.Errorf("handling telemetry failed: %v: %w", err, status.StatusError)
+		syscore.LogErr.Printf("handle telemetry failed: %v", err)
+
+		return status.StatusError
 	}
 
 	return nil
