@@ -62,7 +62,9 @@ func (r *SystemClockRestorer) GetTimestamp() (int64, error) {
 
 // HandleError handles error from the Run() call.
 func (*SystemClockRestorer) HandleError(err error) {
-	syscore.LogErr.Printf("failed to restore timestamp: err=%v\n", err)
+	if err != status.StatusNoData {
+		syscore.LogErr.Printf("failed to restore timestamp: err=%v\n", err)
+	}
 }
 
 // Run restores the UNIX timestamp from the persistent storage.
