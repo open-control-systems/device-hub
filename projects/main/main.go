@@ -114,8 +114,9 @@ func (p *appPipeline) start(opts *appOptions) error {
 	}
 
 	mux := http.NewServeMux()
+	crashHandler := hthandler.NewCrashHandler(mux)
 
-	server, err := htcore.NewServer(mux, htcore.ServerParams{
+	server, err := htcore.NewServer(crashHandler, htcore.ServerParams{
 		Port: opts.port,
 	})
 	if err != nil {
