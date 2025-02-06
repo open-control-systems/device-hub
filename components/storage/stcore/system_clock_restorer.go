@@ -68,7 +68,7 @@ func (*SystemClockRestorer) HandleError(err error) {
 // Run restores the UNIX timestamp from the persistent storage.
 func (r *SystemClockRestorer) Run() error {
 	timestamp, err := r.reader.ReadTimestamp(r.ctx)
-	if err != nil {
+	if err != nil && err != status.StatusNoData {
 		return err
 	}
 
