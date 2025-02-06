@@ -12,6 +12,9 @@ type AsyncTaskRunnerParams struct {
 
 	// ExitOnSuccess is to stop asynchronous task processing after first successful execution.
 	ExitOnSuccess bool
+
+	// DisableRecoverOnPanic is used to disable automatic panic-recovery mechanism.
+	DisableRecoverOnPanic bool
 }
 
 // AsyncTaskRunner periodically runs task in the standalone goroutine.
@@ -31,11 +34,19 @@ func NewAsyncTaskRunner(
 	handler ErrorHandler,
 	params AsyncTaskRunnerParams,
 ) *AsyncTaskRunner {
+	var runnerTask Task
+
+	if params.DisableRecoverOnPanic {
+		runnerTask = task
+	} else {
+		runnerTask = NewCrashTask(task)
+	}
+
 	return &AsyncTaskRunner{
 		ctx:     ctx,
 		doneCh:  make(chan struct{}),
 		awakeCh: make(chan struct{}, 1),
-		task:    task,
+		task:    runnerTask,
 		handler: handler,
 		params:  params,
 	}

@@ -3,6 +3,7 @@ package syscore
 import (
 	"log"
 	"os"
+	"runtime"
 )
 
 var (
@@ -27,4 +28,12 @@ func SetLogFile(path string) error {
 	}
 
 	return nil
+}
+
+// LogCrash logs the result of the crash.
+func LogCrash(err any) {
+	trace := make([]byte, 32*1024)
+	traceSize := runtime.Stack(trace, false)
+
+	LogErr.Printf("crash: %#v, %s", err, trace[:traceSize])
 }
