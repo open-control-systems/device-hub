@@ -28,6 +28,12 @@ type CacheStoreParams struct {
 	}
 
 	TimeSync struct {
+		// Disable to disable automatic device time synchronization.
+		//
+		// Remarks:
+		//  - It doesn't mean that the device timestamp won't be checked.
+		Disable bool
+
 		// MaxDriftInterval is a maximum allowed time difference between local
 		// and device UNIX time.
 		MaxDriftInterval time.Duration
@@ -327,15 +333,22 @@ func (s *CacheStore) newHTTPDevice(
 	desc string,
 	hostname string,
 ) syssched.Task {
-	remoteCurrClock := htcore.NewSystemClock(
-		ctx,
-		s.makeHTTPClient(stopper, uri, desc, hostname),
-		uri+"/system/time",
-		s.params.HTTP.FetchTimeout,
-	)
+	var clockSynchronizer devcore.TimeSynchronizer
+	if s.params.TimeSync.Disable {
+		clockSynchronizer = devcore.FuncSynchronizer(func() error {
+			return status.StatusNotSupported
+		})
+	} else {
+		remoteCurrClock := htcore.NewSystemClock(
+			ctx,
+			s.makeHTTPClient(stopper, uri, desc, hostname),
+			uri+"/system/time",
+			s.params.HTTP.FetchTimeout,
+		)
 
-	clockSynchronizer := syscore.NewSystemClockSynchronizer(
-		localClock, remoteLastClock, remoteCurrClock)
+		clockSynchronizer = syscore.NewSystemClockSynchronizer(
+			localClock, remoteLastClock, remoteCurrClock)
+	}
 
 	var clockVerifier devcore.TimeVerifier
 	if maxDriftInterval := s.params.TimeSync.MaxDriftInterval; maxDriftInterval == 0 {

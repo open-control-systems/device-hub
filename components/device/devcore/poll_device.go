@@ -123,7 +123,7 @@ func (d *PollDevice) validateTimestamp(js JSON) error {
 		syscore.LogInf.Printf("start syncing time for device: ID=%v\n", d.deviceID)
 
 		if err := d.timeSynchronizer.SyncTime(); err != nil {
-			return err
+			return fmt.Errorf("failed to sync device time: %v", err)
 		}
 
 		return fmt.Errorf("failed to fetch data: invalid timestamp")

@@ -53,6 +53,7 @@ type appOptions struct {
 		}
 
 		timeSync struct {
+			disable          bool
 			maxDriftInterval string
 		}
 	}
@@ -303,6 +304,7 @@ func (p *appPipeline) createCacheStore(
 	cacheStoreParams.HTTP.FetchInterval = fetchInterval
 	cacheStoreParams.HTTP.FetchTimeout = fetchTimeout
 	cacheStoreParams.TimeSync.MaxDriftInterval = maxDriftInterval
+	cacheStoreParams.TimeSync.Disable = opts.device.timeSync.disable
 
 	db, err := p.createDB(opts)
 	if err != nil {
@@ -534,6 +536,12 @@ func main() {
 		&options.device.monitor.inactive.disable,
 		"device-monitor-inactive-disable", false,
 		"Disable device inactivity monitoring",
+	)
+
+	cmd.Flags().BoolVar(
+		&options.device.timeSync.disable,
+		"device-time-sync-disable", false,
+		"Disable automatic device time synchronization",
 	)
 
 	cmd.Flags().StringVar(
