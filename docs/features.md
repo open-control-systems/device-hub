@@ -45,7 +45,7 @@ curl localhost:38807/api/v1/system/time
 curl localhost:38807/api/v1/system/time?value=123
 ```
 
-If the UNIX setup fails for any reason, check the following:
+If the UNIX time setup fails for any reason, check the following:
 - Automatic NTP synchronization should be disabled: `timedatectl set-ntp false`
 - Docker container should be provided with the appropriate capabilities for the UNIX time modification: `docker run --cap-add=SYS_TIME`
 
@@ -54,6 +54,18 @@ If the UNIX setup fails for any reason, check the following:
 ```
 GET /system/time - get UNIX time, return -1 if the timestamp is invalid or unknown
 GET /system/time?value=123 - set UNIX time
+```
+
+The device-hub can automatically compensate system clock drift for the remote device. See the following configuration options:
+
+```
+--device-time-sync-drift-interval string           Maximum allowed time drift between local and device UNIX time (empty to disable drift check) (default "5s")
+```
+
+It's possible to disable automatic device time synchronization. See the following configuration options:
+
+```
+--device-time-sync-disable      Disable automatic device time synchronization
 ```
 
 ## Inactive Device Monitoring
