@@ -497,8 +497,8 @@ func main() {
 	cmd.Flags().IntVar(&options.port, "http-port", 0,
 		"HTTP server port (0 for random port)")
 
-	cmd.Flags().StringVar(&options.cacheDir, "cache-dir", "", "device-hub cache directory")
-	cmd.Flags().StringVar(&options.logPath, "log-path", "", "device-hub log file path")
+	cmd.Flags().StringVar(&options.cacheDir, "cache-dir", "", "cache directory")
+	cmd.Flags().StringVar(&options.logPath, "log-path", "", "log file path")
 
 	cmd.Flags().StringVar(&options.storage.influxdb.URL, "storage-influxdb-url", "",
 		"influxdb URL")
