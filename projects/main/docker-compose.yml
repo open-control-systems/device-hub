@@ -27,7 +27,7 @@ services:
     command: [
       "--http-port", "${DEVICE_HUB_HTTP_PORT}",
       "--cache-dir", "${DEVICE_HUB_CACHE_DIR}",
-      "--log-path", "${DEVICE_HUB_LOG_PATH}",
+      "--log-dir", "${DEVICE_HUB_LOG_DIR}",
       "--storage-influxdb-url", "${DEVICE_HUB_STORAGE_INFLUXDB_URL}",
       "--storage-influxdb-org", "${DEVICE_HUB_STORAGE_INFLUXDB_ORG}",
       "--storage-influxdb-api-token", "${DEVICE_HUB_STORAGE_INFLUXDB_API_TOKEN}",
@@ -36,7 +36,7 @@ services:
       "--mdns-server-iface", "${DEVICE_HUB_MDNS_SERVER_IFACE}"
     ]
     volumes:
-      - ${DEVICE_HUB_LOG_PATH}:${DEVICE_HUB_LOG_PATH}
+      - ${DEVICE_HUB_LOG_DIR}:${DEVICE_HUB_LOG_DIR}
       - ${DEVICE_HUB_CACHE_DIR}:${DEVICE_HUB_CACHE_DIR}
     depends_on:
       - influxdb
