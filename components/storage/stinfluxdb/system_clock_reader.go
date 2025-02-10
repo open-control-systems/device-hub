@@ -8,6 +8,7 @@ import (
 	"github.com/influxdata/influxdb-client-go/v2/api"
 
 	"github.com/open-control-systems/device-hub/components/status"
+	"github.com/open-control-systems/device-hub/components/system/syscore"
 )
 
 // SystemClockReader reads the UNIX timestamp from the influxdb.
@@ -37,6 +38,8 @@ func (r *SystemClockReader) ReadTimestamp(ctx context.Context) (int64, error) {
 
 	result, err := r.client.Query(ctx, query)
 	if err != nil {
+		syscore.LogErr.Printf("failed to perform query: %v", err)
+
 		// HACK: library doesn't return the specific errors, so it's hard to tell what's wrong.
 		if strings.Contains(err.Error(), "unauthorized") {
 			return -1, status.StatusInvalidState
