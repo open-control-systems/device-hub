@@ -32,7 +32,7 @@ func (v *DriftTimeVerifier) VerifyTime(deviceTs int64) bool {
 
 	localTs, err := v.clock.GetTimestamp()
 	if err != nil {
-		syscore.LogErr.Printf("failed to get local time: %v\n", err)
+		syscore.LogErr.Printf("failed to get local time: %v", err)
 
 		return false
 	}

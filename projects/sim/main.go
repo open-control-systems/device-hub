@@ -47,7 +47,7 @@ func main() {
 	}
 
 	addr := listener.Addr().String()
-	log.Printf("Server is running at http://%s\n", addr)
+	log.Printf("Server is running at http://%s", addr)
 
 	srv := &http.Server{
 		Handler:      mux,

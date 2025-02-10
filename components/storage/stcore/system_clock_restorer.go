@@ -42,7 +42,7 @@ func (r *SystemClockRestorer) SetTimestamp(timestamp int64) error {
 	if !r.restored {
 		r.restored = true
 
-		syscore.LogInf.Printf("skip timestamp restoring: value=%v\n", timestamp)
+		syscore.LogInf.Printf("skip timestamp restoring: value=%v", timestamp)
 	}
 
 	return nil
@@ -63,7 +63,7 @@ func (r *SystemClockRestorer) GetTimestamp() (int64, error) {
 // HandleError handles error from the Run() call.
 func (*SystemClockRestorer) HandleError(err error) {
 	if err != status.StatusNoData {
-		syscore.LogErr.Printf("failed to restore timestamp: err=%v\n", err)
+		syscore.LogErr.Printf("failed to restore timestamp: err=%v", err)
 	}
 }
 
@@ -78,13 +78,13 @@ func (r *SystemClockRestorer) Run() error {
 	defer r.mu.Unlock()
 
 	if r.restored {
-		syscore.LogInf.Printf("timestamp already restored: restored=%v persisted=%v\n",
+		syscore.LogInf.Printf("timestamp already restored: restored=%v persisted=%v",
 			r.timestamp, timestamp)
 	} else {
 		r.restored = true
 		r.timestamp = timestamp
 
-		syscore.LogInf.Printf("timestamp restored: value=%v\n", r.timestamp)
+		syscore.LogInf.Printf("timestamp restored: value=%v", r.timestamp)
 	}
 
 	return nil

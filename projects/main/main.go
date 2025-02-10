@@ -611,7 +611,7 @@ func main() {
 	)
 
 	if err := cmd.Execute(); err != nil {
-		_, _ = fmt.Fprintf(os.Stderr, "error: failed to execute command: %v\n", err)
+		_, _ = fmt.Fprintf(os.Stderr, "error: failed to execute command: %v", err)
 		os.Exit(1)
 	}
 }

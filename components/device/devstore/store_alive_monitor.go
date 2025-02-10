@@ -85,7 +85,7 @@ func (m *StoreAliveMonitor) GetDesc() []StoreItem {
 
 // HandleError handles Run() error.
 func (*StoreAliveMonitor) HandleError(err error) {
-	syscore.LogErr.Printf("failed to verify inactive devices: %v\n", err)
+	syscore.LogErr.Printf("failed to verify inactive devices: %v", err)
 }
 
 // Run verifies if added devices are still alive.
@@ -102,7 +102,7 @@ func (m *StoreAliveMonitor) Run() error {
 		}
 
 		syscore.LogWrn.Printf("removing inactive device:"+
-			" uri=%s cur_inactive=%s max_inactive=%s\n", uri, diff, m.maxInactiveInterval)
+			" uri=%s cur_inactive=%s max_inactive=%s", uri, diff, m.maxInactiveInterval)
 
 		if err := m.store.Remove(uri); err != nil {
 			return err
