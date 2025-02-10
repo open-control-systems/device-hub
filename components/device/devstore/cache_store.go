@@ -116,8 +116,7 @@ func (s *CacheStore) Stop() error {
 
 	for _, node := range s.nodes {
 		if err := node.stop(); err != nil {
-			syscore.LogErr.Printf("failed to stop device: uri=%s err=%v\n",
-				node.uri, err)
+			syscore.LogErr.Printf("failed to stop device: uri=%s err=%v", node.uri, err)
 		}
 	}
 
@@ -162,7 +161,7 @@ func (s *CacheStore) Add(uri string, desc string) error {
 
 	s.nodes[uri] = node
 
-	syscore.LogInf.Printf("device added: uri=%s desc=%s\n", uri, desc)
+	syscore.LogInf.Printf("device added: uri=%s desc=%s", uri, desc)
 
 	return nil
 }
@@ -187,7 +186,7 @@ func (s *CacheStore) Remove(uri string) error {
 
 	delete(s.nodes, uri)
 
-	syscore.LogInf.Printf("device removed: uri=%s\n", uri)
+	syscore.LogInf.Printf("device removed: uri=%s", uri)
 
 	return nil
 }
@@ -216,8 +215,7 @@ func (s *CacheStore) restoreNodes() {
 
 	err := s.db.ForEach(func(uri string, buf []byte) error {
 		if err := s.restoreNode(uri, buf); err != nil {
-			syscore.LogErr.Printf("failed to restore device: uri=%s err=%v\n",
-				uri, err)
+			syscore.LogErr.Printf("failed to restore device: uri=%s err=%v", uri, err)
 
 			unrestoredURIs = append(unrestoredURIs, uri)
 		}
@@ -235,9 +233,9 @@ func (s *CacheStore) restoreNodes() {
 	for _, uri := range unrestoredURIs {
 		if err := s.db.Remove(uri); err != nil {
 			syscore.LogErr.Printf("failed to remove unrestored device:"+
-				" uri=%s err=%v\n", uri, err)
+				" uri=%s err=%v", uri, err)
 		} else {
-			syscore.LogErr.Printf("unrestored device removed: uri=%s\n", uri)
+			syscore.LogErr.Printf("unrestored device removed: uri=%s", uri)
 		}
 	}
 }
@@ -255,8 +253,7 @@ func (s *CacheStore) restoreNode(uri string, buf []byte) error {
 
 	s.nodes[uri] = node
 
-	syscore.LogInf.Printf("device restored: uri=%s desc=%s\n",
-		uri, item.Desc)
+	syscore.LogInf.Printf("device restored: uri=%s desc=%s", uri, item.Desc)
 
 	return nil
 }

@@ -94,6 +94,6 @@ func (s *Server) run() {
 	defer close(s.doneCh)
 
 	if err := s.server.Serve(s.ln); err != nil && err != http.ErrServerClosed {
-		syscore.LogErr.Printf("failed to serve connection: %v\n", err)
+		syscore.LogErr.Printf("failed to serve connection: %v", err)
 	}
 }

@@ -128,7 +128,7 @@ func (d *PollDevice) validateTimestamp(js JSON) error {
 	}
 
 	if !d.timeVerifier.VerifyTime(int64(timestamp)) {
-		syscore.LogInf.Printf("start syncing time for device: ID=%v\n", d.deviceID)
+		syscore.LogInf.Printf("start syncing time for device: ID=%v", d.deviceID)
 
 		if err := d.timeSynchronizer.SyncTime(); err != nil {
 			return fmt.Errorf("failed to sync device time: %v", err)
@@ -161,7 +161,7 @@ func (d *PollDevice) parseDeviceID(js JSON) error {
 	}
 
 	if d.deviceID == "" {
-		syscore.LogInf.Printf("device ID received: %s\n", deviceID)
+		syscore.LogInf.Printf("device ID received: %s", deviceID)
 
 		d.deviceID = deviceID
 	}

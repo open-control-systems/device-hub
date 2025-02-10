@@ -56,7 +56,7 @@ func (s *SystemClockSynchronizer) SyncTime() error {
 
 	if localTs < remoteCurrTs {
 		LogWrn.Printf(
-			"unable to sync: current remote is ahead of local local=%v remote=%v\n",
+			"unable to sync: current remote is ahead of local local=%v remote=%v",
 			localTs, remoteCurrTs)
 
 		return status.StatusError
@@ -67,7 +67,7 @@ func (s *SystemClockSynchronizer) SyncTime() error {
 	}
 
 	LogInf.Printf(
-		"system-clock-synchronizer: time synced: local=%v remote_last=%v remote_curr=%v\n",
+		"system-clock-synchronizer: time synced: local=%v remote_last=%v remote_curr=%v",
 		localTs, remoteLastTs, remoteCurrTs)
 
 	return nil
