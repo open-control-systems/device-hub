@@ -54,23 +54,10 @@ Now it's time to install the required packages.
 **Install Docker**
 
 ```bash
-for pkg in docker.io docker-doc docker-compose podman-docker containerd runc; do sudo apt-get remove $pkg; done
-
-# Add Docker's official GPG key:
-sudo apt-get update
-sudo apt-get install ca-certificates curl
-sudo install -m 0755 -d /etc/apt/keyrings
-sudo curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc
-sudo chmod a+r /etc/apt/keyrings/docker.asc
-
-# Add the repository to Apt sources:
-echo \
-  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian \
-  $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
-  sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-sudo apt-get update
-
-sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+# See also the official instruction: https://docs.docker.com/engine/install/debian/
+curl -sSL https://get.docker.com | sh
+sudo usermod -aG docker $(whoami)
+sudo reboot
 ```
 
 **Install git**
@@ -125,11 +112,66 @@ It's worth setting up the rotation of logs for the device-hub to make sure they 
 
 device-hub can automatically synchronize the UNIX time for the remote device. For more details, see the [documentation](../../features.md#System-Time-Synchronization).
 
+**Run device-hub**
+
+```bash
+cd device-hub/projects/main
+
+# Build the container.
+docker compose build device-hub
+
+# Run the service.
+#
+# Select the required network interfaces for mDNS (ip link show):
+#  - DEVICE_HUB_MDNS_BROWSE_IFACE
+#  - DEVICE_HUB_MDNS_SERVER_IFACE
+DEVICE_HUB_STORAGE_INFLUXDB_URL="<influxdb_url>" \
+DEVICE_HUB_STORAGE_INFLUXDB_API_TOKEN="<api_token>" \
+DEVICE_HUB_STORAGE_INFLUXDB_BUCKET="<bucket>" \
+DEVICE_HUB_STORAGE_INFLUXDB_ORG="<org>" \
+DEVICE_HUB_LOG_DIR="/var/log/device-hub" \
+DEVICE_HUB_CACHE_DIR="/var/cache/device-hub" \
+DEVICE_HUB_MDNS_BROWSE_IFACE="wlan0" \
+DEVICE_HUB_MDNS_SERVER_IFACE="wlan0" \
+DEVICE_HUB_HTTP_PORT=80
+docker compose up device-hub -d
+```
+
+Make sure the device-hub is able to communicate properly with the influxdb. If the influxdb is empty, check the device-hub logs:
+
+```bash
+# Replace with the configured device-hub log directory.
+tail -F /var/log/device-hub/app.log
+```
+
+for the following lines:
+
+```
+err: 2025/02/10 08:21:53.728015 system_clock_reader.go:41: failed to perform query: Post "http://localhost:8086/api/v2/query?org=bonsai":
+ EOF
+err: 2025/02/10 08:21:53.728309 system_clock_restorer.go:66: failed to restore timestamp: err=influxdb: query failed: Post "http://localh
+ost:8086/api/v2/query?org=bonsai": EOF
+inf: 2025/02/10 08:21:58.850561 system_clock_restorer.go:87: timestamp restored: value=-1
+```
+
+If the device-hub logs contains the following lines:
+
+```
+err: 2025/02/10 08:18:44.300869 system_clock_restorer.go:66: failed to restore timestamp: err=invalid state
+err: 2025/02/10 08:18:49.298417 system_clock_reader.go:41: failed to perform query: unauthorized: unauthorized access
+```
+
+This means that influxdb wasn't configured properly or the wrong API token was given to the device-hub.
+
+## Register Devices
+
 **Configure network**
 
 The device-hub relies on the mDNS to receive data from the IoT devices. That's why it's required for the devices and the device-hub to be connected to the same WiFi AP. If you have any issues connecting RPi to the WiFi AP, make sure WiFi AP doesn't force WiFi STA to use [PMF](https://en.wikipedia.org/wiki/IEEE_802.11w-2009).
 
-The following steps assume that [bonsai firmware](https://github.com/open-control-systems/bonsai-firmware) is installed on the device. Due to specific `bonsai-firmware` settings it's necessary for the device-hub to connect to the `bonsai-firmware` WiFi AP to ensure that device-hub can get the data from the device.
+**Automatic registration**
+
+The following steps assume that [bonsai firmware](https://github.com/open-control-systems/bonsai-firmware) is installed on the device. The device acts as a WiFi AP to which device-hub is connected.
 
 ```bash
 # Scan the network for the corresponding device's AP.
@@ -140,31 +182,24 @@ nmcli device wifi list
 sudo nmcli device wifi connect "bonsai-growlab-369C92005E9930A1D" password "bonsai-growlab-369C920"
 ```
 
-**Run device-hub**
+Devices based on the [bonsai firmware](https://github.com/open-control-systems/bonsai-firmware) can be automatically discovered by the device-hub. So, no further steps are required, just make sure that the device has been correctly discovered by the device-hub. Check the device-hub logs for the following lines:
 
-```bash
-cd device-hub/projects/main
-
-# Create log directory.
-sudo mkdir -p /var/log/device-hub
-# Create cache directory.
-sudo mkdir -p /var/cache/device-hub
-
-# Build the container.
-docker compose build device-hub
-
-# Run the service.
-DEVICE_HUB_STORAGE_INFLUXDB_URL="<influxdb_url>" \
-DEVICE_HUB_STORAGE_INFLUXDB_API_TOKEN="<api_token>" \
-DEVICE_HUB_STORAGE_INFLUXDB_BUCKET="<bucket>" \
-DEVICE_HUB_STORAGE_INFLUXDB_ORG="<org>" \
-DEVICE_HUB_LOG_PATH="/var/log/device-hub/app.log" \
-DEVICE_HUB_CACHE_DIR="/var/cache/device-hub" \
-DEVICE_HUB_HTTP_PORT=0 \
-docker compose up device-hub -d
+```
+inf: 2025/02/10 08:56:43.819963 resolve_store.go:44: addr resolved: hostname=bonsai-growlab.local: addr=1
+92.168.4.1
+err: 2025/02/10 08:56:43.837222 poll_device.go:48: fetch registration failed: Get "http://192.168.4.1:80/
+api/v1/registration": context deadline exceeded
+err: 2025/02/10 08:56:43.837649 log_error_handler.go:11: failed to handle device data: uri=http://bonsai-
+growlab.local:80/api/v1 desc=Bonsai GrowLab Firmware err=operation failed
+inf: 2025/02/10 08:56:43.866917 poll_device.go:164: device ID received: 369C92005E9930A1D2BE64BD97049EC0C
+8A9FD36
+inf: 2025/02/10 08:56:43.867134 poll_device.go:131: start syncing time for device: ID=369C92005E9930A1D2B
+E64BD97049EC0C8A9FD36
+inf: 2025/02/10 08:56:44.030412 system_clock_synchronizer.go:69: system-clock-synchronizer: time synced:
+local=1739177803 remote_last=-1 remote_curr=-1
 ```
 
-**Add device to device-hub**
+**Manual registration**
 
 Ensure that the device implements the following HTTP endpoints:
 
@@ -205,6 +240,7 @@ curl "localhost:12345/api/v1/device/remove?uri=http://bonsai-growlab.local:80/ap
 
 **Monitor device data in influxdb**
 
-Open `locahost:8086` in a browser and enter the influxdb credentials. Ensure SSH port forwarding is enabled. Navigate to the Data Explorer, select the required data type, telemetry or registration, then select the device ID. It's also possible to explore the data using the pre-configured [dashboards](../../templates/influxdb). See the example below.
+Open `locahost:8086` in a browser and enter the influxdb credentials. Ensure SSH port forwarding is enabled. Navigate to the Data Explorer, select the required data type, telemetry or registration, then select the device ID. It's also possible to explore the data using the pre-configured [dashboard](../../templates/influxdb). Import it into the influxdb using the influxdb UI as follows: Dashboard -> CREATE DASHBOARD -> Import Dashboard.
 
+The dashboard looks like this:
 ![InfluxDB Dashboard Example](influxdb_example_dashboard.png)
