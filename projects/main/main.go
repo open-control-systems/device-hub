@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/signal"
 	"path"
+	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
@@ -30,7 +31,7 @@ import (
 )
 
 type appOptions struct {
-	logPath  string
+	logDir   string
 	cacheDir string
 	port     int
 
@@ -454,10 +455,17 @@ func prepareEnvironment(opts *appOptions) error {
 		}
 	}
 
-	if opts.logPath == "" {
-		return fmt.Errorf("log path is required")
+	if opts.logDir == "" {
+		return fmt.Errorf("log directory is required")
 	}
-	if err := syscore.SetLogFile(opts.logPath); err != nil {
+	fi, err := os.Stat(opts.logDir)
+	if err != nil {
+		return err
+	}
+	if !fi.Mode().IsDir() {
+		return errors.New("log path should be a directory")
+	}
+	if err := syscore.SetLogFile(filepath.Join(opts.logDir, "app.log")); err != nil {
 		return err
 	}
 
@@ -499,7 +507,7 @@ func main() {
 		"HTTP server port (0 for random port)")
 
 	cmd.Flags().StringVar(&options.cacheDir, "cache-dir", "", "cache directory")
-	cmd.Flags().StringVar(&options.logPath, "log-path", "", "log file path")
+	cmd.Flags().StringVar(&options.logDir, "log-dir", "", "log directory")
 
 	cmd.Flags().StringVar(&options.storage.influxdb.URL, "storage-influxdb-url", "",
 		"influxdb URL")
