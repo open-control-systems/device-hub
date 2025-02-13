@@ -71,10 +71,9 @@ type appOptions struct {
 		}
 
 		server struct {
-			disable      bool
-			hostname     string
-			instanceName string
-			iface        string
+			disable  bool
+			hostname string
+			iface    string
 		}
 	}
 }
@@ -356,7 +355,7 @@ func (p *appPipeline) createDB(opts *appOptions) (stcore.DB, error) {
 func (p *appPipeline) configureMdnsServer(server *htcore.Server, opts *appOptions) error {
 	services := []*sysmdns.Service{
 		{
-			Instance:   opts.mdns.server.instanceName,
+			Instance:   "Device Hub HTTP Service",
 			Name:       sysmdns.ServiceName(sysmdns.ServiceTypeHTTP, sysmdns.ProtoTCP),
 			Hostname:   opts.mdns.server.hostname,
 			Port:       server.Port(),
@@ -472,9 +471,6 @@ func prepareEnvironment(opts *appOptions) error {
 	if !opts.mdns.server.disable {
 		if opts.mdns.server.hostname == "" {
 			return errors.New("mDNS server hostname can't be empty")
-		}
-		if opts.mdns.server.instanceName == "" {
-			return errors.New("mDNS server instance name can't be empty")
 		}
 	}
 
@@ -595,12 +591,6 @@ func main() {
 		&options.mdns.server.hostname,
 		"mdns-server-hostname", "device-hub",
 		"mDNS server hostname",
-	)
-
-	cmd.Flags().StringVar(
-		&options.mdns.server.instanceName,
-		"mdns-server-instance", "Device Hub Software",
-		"mDNS server instance name",
 	)
 
 	cmd.Flags().StringVar(

@@ -90,7 +90,6 @@ For more advanced configuration, see the following device-hub CLI options:
 --mdns-server-disable               Disable mDNS server
 --mdns-server-hostname string       mDNS server hostname (default "device-hub")
 --mdns-server-iface string          Comma-separated list of network interfaces for the mDNS server (empty for all interfaces)
---mdns-server-instance string       mDNS server instance name (default "Device Hub Sowtware")
 ```
 
 Once the mDNS server is properly configured, it should be possible to access the device-hub as follows:
