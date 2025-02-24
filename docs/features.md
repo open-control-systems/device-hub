@@ -105,9 +105,9 @@ curl device-hub.local:8081/api/v1/system/time
 The device-hub has a bult-in mDNS browser. This allows the device-hub to reach the device in the local network, without explicitly specifying an IP address of the device. For example, it's possible to add the following device to the device-hub:
 
 ```
-# URI - http://bonsai-growlab.local:80/api/v1
+# URI - http://bonsai-growlab.local:8081/api/v1
 # Description - home-plant
-curl device-hub.local/api/v1/device/add?uri=http://bonsai-growlab.local:80/api/v1&desc=home-plant
+curl device-hub.local/api/v1/device/add?uri=http://bonsai-growlab.local:8081/api/v1&desc=home-plant
 ```
 
 `bonsai-growlab.local` is the mDNS hostname of the device. device-hub can automatically resolve it to the actual IP address. If the IP address of the device changes in the future, the device-hub will automatically handle it.
@@ -130,7 +130,7 @@ A device is required to have the following in its mDNS txt record:
 - `autodiscovery_mode` - auto-discovery mode, use `1` to add the device automatically.
 
 URI examples:
-- `http://bonsai-growlab.local/api/v1` - HTTP API over mDNS
+- `http://bonsai-growlab.local:8081/api/v1` - HTTP API over mDNS
 - `http://192.168.4.1:17321/api/v1` - HTTP API over static IP
 
 Desc examples:
@@ -148,8 +148,8 @@ avahi-browse -r _http._tcp
  local
    hostname = [bonsai-growlab.local]
    address = [192.168.4.1]
-   port = [80]
-   txt = ["api_base_path=/api/" "api_versions=v1" "autodiscovery_uri=http://bonsai-growlab.local/api/v1"
+   port = [8081]
+   txt = ["api_base_path=/api/" "api_versions=v1" "autodiscovery_uri=http://bonsai-growlab.local:8081/api/v1"
 "autodiscovery_desc=Bonsai GrowLab Firmware" "autodiscovery_mode=1"]
 ```
 
