@@ -240,7 +240,7 @@ curl "localhost:12345/api/v1/device/remove?uri=http://bonsai-growlab.local:80/ap
 
 **Monitor device data in influxdb**
 
-Open `locahost:8086` in a browser and enter the influxdb credentials. Ensure SSH port forwarding is enabled. Navigate to the Data Explorer, select the required data type, telemetry or registration, then select the device ID. It's also possible to explore the data using the pre-configured [dashboard](../../templates/influxdb). Import it into the influxdb using the influxdb UI as follows: Dashboard -> CREATE DASHBOARD -> Import Dashboard.
+Open `locahost:8086` in a browser and enter the influxdb credentials. Ensure SSH port forwarding is enabled. Navigate to the Data Explorer, select the required data type, telemetry or registration, then select the device ID. It's also possible to explore the data using the pre-configured [dashboards](../../../templates/influxdb/). Import it into the influxdb using the influxdb UI as follows: Dashboard -> CREATE DASHBOARD -> Import Dashboard.
 
 The dashboard looks like this:
 ![InfluxDB Dashboard Example](influxdb_example_dashboard.png)
