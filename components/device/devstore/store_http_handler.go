@@ -43,7 +43,14 @@ func (h *StoreHTTPHandler) HandleAdd(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.store.Add(uri, desc); err != nil {
+	typ := r.URL.Query().Get("type")
+	if typ == "" {
+		http.Error(w, "error: missed `type` query parameter", http.StatusBadRequest)
+
+		return
+	}
+
+	if err := h.store.Add(uri, typ, desc); err != nil {
 		http.Error(w, fmt.Sprintf("error: failed to add device with uri=%s: %v", uri, err),
 			http.StatusBadRequest)
 

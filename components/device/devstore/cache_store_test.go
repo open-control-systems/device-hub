@@ -252,7 +252,8 @@ func TestCacheStoreAddURIUnsupportedScheme(t *testing.T) {
 		require.Nil(t, store.Stop())
 	}()
 
-	require.Equal(t, status.StatusNotSupported, store.Add("foo-bar-baz", "foo-bar-baz"))
+	require.Equal(t, status.StatusNotSupported,
+		store.Add("foo-bar-baz", "test-type", "foo-bar-baz"))
 }
 
 func TestCacheStoreAddRemoveResourceNoResponse(t *testing.T) {
@@ -286,16 +287,17 @@ func TestCacheStoreAddRemoveResourceNoResponse(t *testing.T) {
 
 	tests := []struct {
 		uri  string
+		typ  string
 		desc string
 	}{
-		{"http://devcore.example.com:123/api/v10", "foo-bar-baz"},
-		{"http://192.1.2.3:8787/api/v3", "foo-bar-baz"},
-		{"https://192.1.2.3:1234", "foo-bar-baz"},
-		{"http://bonsai-growlab.local:234/api/v1", "foo-bar-baz"},
+		{"http://devcore.example.com:123/api/v10", "test-type", "foo-bar-baz"},
+		{"http://192.1.2.3:8787/api/v3", "test-type", "foo-bar-baz"},
+		{"https://192.1.2.3:1234", "test-type", "foo-bar-baz"},
+		{"http://bonsai-growlab.local:234/api/v1", "test-type", "foo-bar-baz"},
 	}
 
 	for _, test := range tests {
-		require.Nil(t, store.Add(test.uri, test.desc))
+		require.Nil(t, store.Add(test.uri, test.typ, test.desc))
 	}
 
 	<-ctx.Done()
@@ -364,7 +366,7 @@ func TestCacheStoreAddRemove(t *testing.T) {
 	server := httptest.NewServer(mux)
 	defer server.Close()
 
-	require.Nil(t, store.Add(server.URL, "foo-bar-baz"))
+	require.Nil(t, store.Add(server.URL, "test-type", "foo-bar-baz"))
 
 	require.True(t, maps.Equal(telemetryData, <-handler.telemetry))
 	require.True(t, maps.Equal(registrationData, <-handler.registration))
@@ -418,8 +420,9 @@ func TestCacheStoreRestore(t *testing.T) {
 
 	deviceURI := server.URL
 	deviceDesc := "foo-bar-baz"
+	deviceType := "test-type"
 
-	require.Nil(t, store1.Add(deviceURI, deviceDesc))
+	require.Nil(t, store1.Add(deviceURI, deviceType, deviceDesc))
 
 	require.True(t, maps.Equal(telemetryData, <-handler1.telemetry))
 	require.True(t, maps.Equal(registrationData, <-handler1.registration))
@@ -435,10 +438,11 @@ func TestCacheStoreRestore(t *testing.T) {
 	desc := descs[0]
 	require.Equal(t, deviceURI, desc.URI)
 	require.Equal(t, deviceDesc, desc.Desc)
+	require.Equal(t, deviceType, desc.Type)
 
 	require.Nil(t, store2.Start())
 
-	require.NotNil(t, store2.Add(deviceURI, deviceDesc))
+	require.NotNil(t, store2.Add(deviceURI, deviceType, deviceDesc))
 	require.True(t, maps.Equal(telemetryData, <-handler2.telemetry))
 	require.True(t, maps.Equal(registrationData, <-handler2.registration))
 
@@ -447,7 +451,7 @@ func TestCacheStoreRestore(t *testing.T) {
 	handler3 := newTestCacheStoreDataHandler()
 	store3 := makeStore(db, handler3)
 
-	require.Nil(t, store3.Add(deviceURI, deviceDesc))
+	require.Nil(t, store3.Add(deviceURI, deviceType, deviceDesc))
 	require.True(t, maps.Equal(telemetryData, <-handler3.telemetry))
 	require.True(t, maps.Equal(registrationData, <-handler3.registration))
 }
@@ -474,8 +478,10 @@ func TestCacheStoreAddSameDevice(t *testing.T) {
 		require.Nil(t, store.Stop())
 	}()
 
-	require.Nil(t, store.Add("http://foo.bar.com:123", "foo-bar-com"))
-	require.Equal(t, ErrDeviceExist, store.Add("http://foo.bar.com:123", "foo-bar-com"))
+	require.Nil(t, store.Add("http://foo.bar.com:123", "test-type", "foo-bar-com"))
+
+	require.Equal(t, ErrDeviceExist,
+		store.Add("http://foo.bar.com:123", "test-type", "foo-bar-com"))
 }
 
 func TestCacheStoreNoopDB(t *testing.T) {
@@ -502,8 +508,9 @@ func TestCacheStoreNoopDB(t *testing.T) {
 
 	deviceURI := "http://foo.bar.com:123"
 	deviceDesc := "foo-bar-com"
+	deviceType := "test-type"
 
-	require.Nil(t, store.Add(deviceURI, deviceDesc))
+	require.Nil(t, store.Add(deviceURI, deviceType, deviceDesc))
 	require.Nil(t, store.Remove(deviceURI))
 }
 

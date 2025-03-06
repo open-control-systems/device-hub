@@ -15,27 +15,35 @@ func (c *testStoreAliveMonitorClock) Now() time.Time {
 	return c.now
 }
 
+type testStoreAliveMonitorDevice struct {
+	typ  string
+	desc string
+}
+
 type testStoreAliveMonitorStore struct {
 	err             error
-	devices         map[string]string
+	devices         map[string]testStoreAliveMonitorDevice
 	addCallCount    int
 	removeCallCount int
 }
 
 func newTestStoreAliveMonitorStore() *testStoreAliveMonitorStore {
 	return &testStoreAliveMonitorStore{
-		devices: make(map[string]string),
+		devices: make(map[string]testStoreAliveMonitorDevice),
 	}
 }
 
-func (s *testStoreAliveMonitorStore) Add(uri string, desc string) error {
+func (s *testStoreAliveMonitorStore) Add(uri string, typ string, desc string) error {
 	s.addCallCount++
 
 	if s.err != nil {
 		return s.err
 	}
 
-	s.devices[uri] = desc
+	s.devices[uri] = testStoreAliveMonitorDevice{
+		typ:  typ,
+		desc: desc,
+	}
 
 	return nil
 }
@@ -55,10 +63,11 @@ func (s *testStoreAliveMonitorStore) Remove(uri string) error {
 func (s *testStoreAliveMonitorStore) GetDesc() []StoreItem {
 	var ret []StoreItem
 
-	for uri, desc := range s.devices {
+	for uri, device := range s.devices {
 		ret = append(ret, StoreItem{
 			URI:  uri,
-			Desc: desc,
+			Type: device.typ,
+			Desc: device.desc,
 		})
 	}
 
@@ -69,13 +78,13 @@ func (s *testStoreAliveMonitorStore) count() int {
 	return len(s.devices)
 }
 
-func (s *testStoreAliveMonitorStore) checkDevice(uri string, desc string) bool {
+func (s *testStoreAliveMonitorStore) checkDevice(uri string, typ string, desc string) bool {
 	d, ok := s.devices[uri]
 	if !ok {
 		return false
 	}
 
-	return d == desc
+	return d.typ == typ && d.desc == desc
 }
 
 func TestStoreAliveMonitorVerifyInactivityOK(t *testing.T) {
@@ -83,19 +92,20 @@ func TestStoreAliveMonitorVerifyInactivityOK(t *testing.T) {
 
 	uri := "http://bonsai-growlab.local/api/v1"
 	desc := "home-plant"
+	typ := "test-type"
 
 	clock := &testStoreAliveMonitorClock{}
 	store := newTestStoreAliveMonitorStore()
 
 	monitor := NewStoreAliveMonitor(clock, store, inactiveInterval)
 
-	require.Nil(t, monitor.Add(uri, desc))
+	require.Nil(t, monitor.Add(uri, typ, desc))
 	require.Nil(t, monitor.Run())
 
 	require.Equal(t, 1, store.count())
 	require.Equal(t, 1, store.addCallCount)
 	require.Equal(t, 0, store.removeCallCount)
-	require.True(t, store.checkDevice(uri, desc))
+	require.True(t, store.checkDevice(uri, typ, desc))
 
 	clock.now = clock.now.Add(inactiveInterval / 2)
 	require.Nil(t, monitor.Run())
@@ -103,7 +113,7 @@ func TestStoreAliveMonitorVerifyInactivityOK(t *testing.T) {
 	require.Equal(t, 1, store.count())
 	require.Equal(t, 1, store.addCallCount)
 	require.Equal(t, 0, store.removeCallCount)
-	require.True(t, store.checkDevice(uri, desc))
+	require.True(t, store.checkDevice(uri, typ, desc))
 }
 
 func TestStoreAliveMonitorVerifyInactivityTimeout(t *testing.T) {
@@ -112,6 +122,7 @@ func TestStoreAliveMonitorVerifyInactivityTimeout(t *testing.T) {
 
 	uri := "http://bonsai-growlab.local/api/v1"
 	desc := "home-plant"
+	typ := "test-type"
 
 	clock := &testStoreAliveMonitorClock{}
 	store := newTestStoreAliveMonitorStore()
@@ -121,13 +132,13 @@ func TestStoreAliveMonitorVerifyInactivityTimeout(t *testing.T) {
 	notifier := monitor.Monitor(uri)
 	require.NotNil(t, notifier)
 
-	require.Nil(t, monitor.Add(uri, desc))
+	require.Nil(t, monitor.Add(uri, typ, desc))
 	require.Nil(t, monitor.Run())
 
 	require.Equal(t, 1, store.count())
 	require.Equal(t, 1, store.addCallCount)
 	require.Equal(t, 0, store.removeCallCount)
-	require.True(t, store.checkDevice(uri, desc))
+	require.True(t, store.checkDevice(uri, typ, desc))
 
 	clock.now = clock.now.Add(inactiveInterval - resolution)
 	require.Nil(t, monitor.Run())
@@ -136,27 +147,27 @@ func TestStoreAliveMonitorVerifyInactivityTimeout(t *testing.T) {
 
 	require.Equal(t, 1, store.addCallCount)
 	require.Equal(t, 0, store.removeCallCount)
-	require.True(t, store.checkDevice(uri, desc))
+	require.True(t, store.checkDevice(uri, typ, desc))
 
 	clock.now = clock.now.Add(resolution)
 	require.Nil(t, monitor.Run())
 
 	require.Equal(t, 1, store.addCallCount)
 	require.Equal(t, 0, store.removeCallCount)
-	require.True(t, store.checkDevice(uri, desc))
+	require.True(t, store.checkDevice(uri, typ, desc))
 
 	clock.now = clock.now.Add(inactiveInterval - resolution)
 	require.Nil(t, monitor.Run())
 
 	require.Equal(t, 1, store.addCallCount)
 	require.Equal(t, 1, store.removeCallCount)
-	require.False(t, store.checkDevice(uri, desc))
+	require.False(t, store.checkDevice(uri, typ, desc))
 
 	require.Nil(t, monitor.Run())
 
 	require.Equal(t, 1, store.addCallCount)
 	require.Equal(t, 1, store.removeCallCount)
-	require.False(t, store.checkDevice(uri, desc))
+	require.False(t, store.checkDevice(uri, typ, desc))
 }
 
 func TestStoreAliveMonitorVerifyInactivityOnRestore(t *testing.T) {
@@ -165,11 +176,12 @@ func TestStoreAliveMonitorVerifyInactivityOnRestore(t *testing.T) {
 
 	uri := "http://bonsai-growlab.local/api/v1"
 	desc := "home-plant"
+	typ := "test-type"
 
 	clock := &testStoreAliveMonitorClock{}
 
 	store := newTestStoreAliveMonitorStore()
-	require.Nil(t, store.Add(uri, desc))
+	require.Nil(t, store.Add(uri, typ, desc))
 
 	monitor := NewStoreAliveMonitor(clock, store, inactiveInterval)
 
@@ -178,10 +190,10 @@ func TestStoreAliveMonitorVerifyInactivityOnRestore(t *testing.T) {
 	require.Nil(t, monitor.Run())
 	require.Equal(t, 1, store.addCallCount)
 	require.Equal(t, 1, store.removeCallCount)
-	require.False(t, store.checkDevice(uri, desc))
+	require.False(t, store.checkDevice(uri, typ, desc))
 
 	require.Nil(t, monitor.Run())
 	require.Equal(t, 1, store.addCallCount)
 	require.Equal(t, 1, store.removeCallCount)
-	require.False(t, store.checkDevice(uri, desc))
+	require.False(t, store.checkDevice(uri, typ, desc))
 }

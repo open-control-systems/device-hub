@@ -126,7 +126,7 @@ func (s *CacheStore) Stop() error {
 }
 
 // Add caches the device information in the persistent storage.
-func (s *CacheStore) Add(uri string, desc string) error {
+func (s *CacheStore) Add(uri string, typ string, desc string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -136,7 +136,7 @@ func (s *CacheStore) Add(uri string, desc string) error {
 
 	now := time.Now()
 
-	node, err := s.makeNode(uri, desc, now)
+	node, err := s.makeNode(uri, typ, desc, now)
 	if err != nil {
 		return err
 	}
@@ -144,6 +144,7 @@ func (s *CacheStore) Add(uri string, desc string) error {
 	item := StorageItem{
 		Desc:      desc,
 		Timestamp: now.Unix(),
+		Type:      typ,
 	}
 
 	buf, err := item.MarshalBinary()
@@ -161,7 +162,7 @@ func (s *CacheStore) Add(uri string, desc string) error {
 
 	s.nodes[uri] = node
 
-	syscore.LogInf.Printf("device added: uri=%s desc=%s", uri, desc)
+	syscore.LogInf.Printf("device added: uri=%s type=%s desc=%s", uri, typ, desc)
 
 	return nil
 }
@@ -201,6 +202,7 @@ func (s *CacheStore) GetDesc() []StoreItem {
 	for _, node := range s.nodes {
 		items = append(items, StoreItem{
 			URI:       node.uri,
+			Type:      node.typ,
 			Desc:      node.desc,
 			ID:        node.holder.Get(),
 			CreatedAt: node.createdAt,
@@ -246,19 +248,24 @@ func (s *CacheStore) restoreNode(uri string, buf []byte) error {
 		return err
 	}
 
-	node, err := s.makeNode(uri, item.Desc, time.Unix(item.Timestamp, 0))
+	node, err := s.makeNode(uri, item.Type, item.Desc, time.Unix(item.Timestamp, 0))
 	if err != nil {
 		return err
 	}
 
 	s.nodes[uri] = node
 
-	syscore.LogInf.Printf("device restored: uri=%s desc=%s", uri, item.Desc)
+	syscore.LogInf.Printf("device restored: uri=%s type=%s desc=%s", uri, item.Type, item.Desc)
 
 	return nil
 }
 
-func (s *CacheStore) makeNode(uri string, desc string, now time.Time) (*storeNode, error) {
+func (s *CacheStore) makeNode(
+	uri string,
+	typ string,
+	desc string,
+	now time.Time,
+) (*storeNode, error) {
 	u, err := url.Parse(uri)
 	if err != nil {
 		return nil, err
@@ -268,7 +275,7 @@ func (s *CacheStore) makeNode(uri string, desc string, now time.Time) (*storeNod
 
 	switch deviceType {
 	case deviceTypeHTTP:
-		return s.makeNodeHTTP(u, uri, desc, now)
+		return s.makeNodeHTTP(u, uri, typ, desc, now)
 	default:
 		return nil, status.StatusNotSupported
 	}
@@ -277,6 +284,7 @@ func (s *CacheStore) makeNode(uri string, desc string, now time.Time) (*storeNod
 func (s *CacheStore) makeNodeHTTP(
 	u *url.URL,
 	uri string,
+	typ string,
 	desc string,
 	now time.Time,
 ) (*storeNode, error) {
@@ -301,7 +309,7 @@ func (s *CacheStore) makeNodeHTTP(
 			desc,
 			u.Hostname(),
 		),
-		&logErrorHandler{uri: uri, desc: desc},
+		&logErrorHandler{uri: uri, typ: typ, desc: desc},
 		syssched.AsyncTaskRunnerParams{
 			UpdateInterval: s.params.HTTP.FetchInterval,
 		},
@@ -311,6 +319,7 @@ func (s *CacheStore) makeNodeHTTP(
 
 	return &storeNode{
 		uri:        uri,
+		typ:        typ,
 		desc:       desc,
 		createdAt:  now.Format(time.RFC1123),
 		cancelFunc: cancelFunc,
@@ -419,6 +428,7 @@ func parseDeviceType(scheme string) deviceType {
 
 type storeNode struct {
 	uri        string
+	typ        string
 	desc       string
 	createdAt  string
 	cancelFunc context.CancelFunc

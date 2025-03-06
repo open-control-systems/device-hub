@@ -223,7 +223,7 @@ The following examples assume that the device-hub URL is the following: `http://
 Register a device with the device-hub HTTP API:
 
 ```bash
-curl "localhost:12345/api/v1/device/add?uri=http://bonsai-growlab.local:80/api/v1&desc=home-zamioculcas"
+curl "localhost:12345/api/v1/device/add?uri=http://bonsai-growlab.local:80/api/v1&type=bonsai-growlab&desc=home-zamioculcas"
 ```
 
 Check that the device is correctly registered:

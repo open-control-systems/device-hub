@@ -1,6 +1,7 @@
 package devstore
 
 type StorageItem struct {
-	Desc      text
-	Timestamp int64
+    Desc      text
+    Timestamp int64
+    Type text
 }

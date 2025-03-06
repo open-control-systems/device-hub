@@ -9,20 +9,25 @@ import (
 	"github.com/open-control-systems/device-hub/components/system/sysmdns"
 )
 
+type testStoreMdnsHandlerDevice struct {
+	typ  string
+	desc string
+}
+
 type testStoreMdnsHandlerStore struct {
 	err             error
-	devices         map[string]string
+	devices         map[string]testStoreMdnsHandlerDevice
 	addCallCount    int
 	removeCallCount int
 }
 
 func newTestStoreMdnsHandlerStore() *testStoreMdnsHandlerStore {
 	return &testStoreMdnsHandlerStore{
-		devices: make(map[string]string),
+		devices: make(map[string]testStoreMdnsHandlerDevice),
 	}
 }
 
-func (s *testStoreMdnsHandlerStore) Add(uri string, desc string) error {
+func (s *testStoreMdnsHandlerStore) Add(uri string, typ string, desc string) error {
 	if s.err != nil {
 		return s.err
 	}
@@ -33,7 +38,11 @@ func (s *testStoreMdnsHandlerStore) Add(uri string, desc string) error {
 	}
 
 	s.addCallCount++
-	s.devices[uri] = desc
+
+	s.devices[uri] = testStoreMdnsHandlerDevice{
+		typ:  typ,
+		desc: desc,
+	}
 
 	return nil
 }
@@ -58,13 +67,13 @@ func (s *testStoreMdnsHandlerStore) count() int {
 	return len(s.devices)
 }
 
-func (s *testStoreMdnsHandlerStore) checkDevice(uri string, desc string) bool {
+func (s *testStoreMdnsHandlerStore) checkDevice(uri string, typ string, desc string) bool {
 	d, ok := s.devices[uri]
 	if !ok {
 		return false
 	}
 
-	return d == desc
+	return d.typ == typ && d.desc == desc
 }
 
 func TestStoreMdnsHandlerInvalidTxtRecordFormat(t *testing.T) {
@@ -165,6 +174,7 @@ func TestStoreMdnsHandlerFailedToAdd(t *testing.T) {
 			"autodiscovery_mode=1",
 			"autodiscovery_uri=http//bonsai-growlab.local/api/v1",
 			"autodiscovery_desc=home-plant",
+			"autodiscovery_type=test-type",
 		},
 	}
 
@@ -180,12 +190,15 @@ func TestStoreMdnsHandlerAddOK(t *testing.T) {
 			"autodiscovery_mode=1",
 			"autodiscovery_uri=http://bonsai-growlab.local/api/v1",
 			"autodiscovery_desc=home-plant",
+			"autodiscovery_type=test-type",
 		},
 	}
 
 	require.Nil(t, mdnsHandler.HandleService(service))
 	require.Equal(t, 1, store.count())
-	require.True(t, store.checkDevice("http://bonsai-growlab.local/api/v1", "home-plant"))
+
+	require.True(t,
+		store.checkDevice("http://bonsai-growlab.local/api/v1", "test-type", "home-plant"))
 }
 
 func TestStoreMdnsHandlerAddMultipleTimes(t *testing.T) {
@@ -198,6 +211,7 @@ func TestStoreMdnsHandlerAddMultipleTimes(t *testing.T) {
 				"autodiscovery_mode=1",
 				"autodiscovery_uri=http://bonsai-growlab.local/api/v1",
 				"autodiscovery_desc=home-plant",
+				"autodiscovery_type=test-type",
 			},
 		}
 
@@ -206,5 +220,7 @@ func TestStoreMdnsHandlerAddMultipleTimes(t *testing.T) {
 
 	require.Equal(t, 1, store.count())
 	require.Equal(t, 1, store.addCallCount)
-	require.True(t, store.checkDevice("http://bonsai-growlab.local/api/v1", "home-plant"))
+
+	require.True(t,
+		store.checkDevice("http://bonsai-growlab.local/api/v1", "test-type", "home-plant"))
 }
