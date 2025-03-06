@@ -17,8 +17,8 @@ func NewAwakeStore(a syssched.Awakener, s Store) *AwakeStore {
 }
 
 // Add adds the device and notifies the awakener.
-func (s *AwakeStore) Add(uri string, desc string) error {
-	err := s.store.Add(uri, desc)
+func (s *AwakeStore) Add(uri string, typ string, desc string) error {
+	err := s.store.Add(uri, typ, desc)
 	if err == nil {
 		s.awakener.Awake()
 	}

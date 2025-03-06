@@ -53,24 +53,30 @@ func (h *StoreMdnsHandler) HandleService(service *sysmdns.Service) error {
 		return nil
 	}
 
-	return h.handleAutodiscovery(mode, uri, desc)
+	typ, ok := records["autodiscovery_type"]
+	if !ok {
+		return nil
+	}
+
+	return h.handleAutodiscovery(mode, uri, typ, desc)
 }
 
 func (h *StoreMdnsHandler) handleAutodiscovery(
 	mode autodiscoveryMode,
 	uri string,
+	typ string,
 	desc string,
 ) error {
 	switch mode {
 	case autodiscoveryModeAdd:
-		return h.handleAutodiscoveryAdd(uri, desc)
+		return h.handleAutodiscoveryAdd(uri, typ, desc)
 	default:
 		panic("failed to handle device auto-discovery: invalid state")
 	}
 }
 
-func (h *StoreMdnsHandler) handleAutodiscoveryAdd(uri string, desc string) error {
-	err := h.store.Add(uri, desc)
+func (h *StoreMdnsHandler) handleAutodiscoveryAdd(uri string, typ string, desc string) error {
+	err := h.store.Add(uri, typ, desc)
 	if err != nil && err != ErrDeviceExist {
 		return err
 	}

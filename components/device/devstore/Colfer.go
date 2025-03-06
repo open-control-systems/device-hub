@@ -43,6 +43,8 @@ type StorageItem struct {
 	Desc string
 
 	Timestamp int64
+
+	Type string
 }
 
 // MarshalTo encodes o as Colfer into buf and returns the number of bytes written.
@@ -82,6 +84,20 @@ func (o *StorageItem) MarshalTo(buf []byte) int {
 		i++
 	}
 
+	if l := len(o.Type); l != 0 {
+		buf[i] = 2
+		i++
+		x := uint(l)
+		for x >= 0x80 {
+			buf[i] = byte(x | 0x80)
+			x >>= 7
+			i++
+		}
+		buf[i] = byte(x)
+		i++
+		i += copy(buf[i:], o.Type)
+	}
+
 	buf[i] = 0x7f
 	i++
 	return i
@@ -110,6 +126,15 @@ func (o *StorageItem) MarshalLen() (int, error) {
 		for n := 0; x >= 0x80 && n < 8; n++ {
 			x >>= 7
 			l++
+		}
+	}
+
+	if x := len(o.Type); x != 0 {
+		if x > ColferSizeMax {
+			return 0, ColferMax(fmt.Sprintf("colfer: field devstore.StorageItem.Type exceeds %d bytes", ColferSizeMax))
+		}
+		for l += x + 2; x >= 0x80; l++ {
+			x >>= 7
 		}
 	}
 
@@ -232,6 +257,45 @@ func (o *StorageItem) Unmarshal(data []byte) (int, error) {
 			}
 		}
 		o.Timestamp = int64(^x + 1)
+
+		header = data[i]
+		i++
+	}
+
+	if header == 2 {
+		if i >= len(data) {
+			goto eof
+		}
+		x := uint(data[i])
+		i++
+
+		if x >= 0x80 {
+			x &= 0x7f
+			for shift := uint(7); ; shift += 7 {
+				if i >= len(data) {
+					goto eof
+				}
+				b := uint(data[i])
+				i++
+
+				if b < 0x80 {
+					x |= b << shift
+					break
+				}
+				x |= (b & 0x7f) << shift
+			}
+		}
+
+		if x > uint(ColferSizeMax) {
+			return 0, ColferMax(fmt.Sprintf("colfer: devstore.StorageItem.Type size %d exceeds %d bytes", x, ColferSizeMax))
+		}
+
+		start := i
+		i += int(x)
+		if i >= len(data) {
+			goto eof
+		}
+		o.Type = string(data[start:i])
 
 		header = data[i]
 		i++

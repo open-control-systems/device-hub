@@ -126,6 +126,7 @@ The device-hub can automatically add devices based on the mDNS txt records.
 
 A device is required to have the following in its mDNS txt record:
 - `autodiscovery_uri` - device URI, how device can be reached.
+- `autodiscovery_type` - device type, to distinguish one device from another.
 - `autodiscovery_desc` - human readable device description.
 - `autodiscovery_mode` - auto-discovery mode, use `1` to add the device automatically.
 
@@ -149,8 +150,7 @@ avahi-browse -r _http._tcp
    hostname = [bonsai-growlab.local]
    address = [192.168.4.1]
    port = [8081]
-   txt = ["api_base_path=/api/" "api_versions=v1" "autodiscovery_uri=http://bonsai-growlab.local:8081/api/v1"
-"autodiscovery_desc=Bonsai GrowLab Firmware" "autodiscovery_mode=1"]
+   txt = ["api_base_path=/api/" "api_versions=v1" "autodiscovery_uri=http://bonsai-growlab.local:8081/api/v1" "autodiscovery_type=bonsai-growlab" "autodiscovery_desc=Bonsai GrowLab Firmware" "autodiscovery_mode=1"]
 ```
 
 The device can now be added to the device-hub automatically. For more advanced configuration, see the following device-hub CLI options:

@@ -51,11 +51,11 @@ func (m *StoreAliveMonitor) Monitor(uri string) syssched.AliveNotifier {
 }
 
 // Add adds the device to the underlying store and starts monitoring its well-being.
-func (m *StoreAliveMonitor) Add(uri string, desc string) error {
+func (m *StoreAliveMonitor) Add(uri string, typ string, desc string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	if err := m.store.Add(uri, desc); err != nil {
+	if err := m.store.Add(uri, typ, desc); err != nil {
 		return err
 	}
 
