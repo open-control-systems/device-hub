@@ -1,6 +1,6 @@
 ## Introduction
 
-device-hub is a self-hosted software solution for collecting, storing, and monitoring data from IoT devices on a local network. It was originally designed to work with devices based on the [control-components](https://github.com/open-control-systems/control-components) firmware. It also supports any device with an HTTP API, making it suitable for a wide range of smart home, industrial automation, and IoT data monitoring applications.
+device-hub is a self-hosted software solution for collecting, storing, and monitoring data from IoT devices on a local network. It was originally designed to work with devices based on the [control-components](https://github.com/open-control-systems/control-components) firmware, but it actually supports any device with an HTTP API, making it suitable for a wide range of smart home, industrial automation, and IoT data monitoring applications.
 
 ## How It Works
 
