@@ -4,7 +4,7 @@ device-hub is a self-hosted software solution for collecting, storing, and monit
 
 ## How It Works
 
-First, an IoT device should be manually or automatically registered in the device-hub. Then, device-hub starts to fetch device telemetry and registration data and stores it in the long-term storage. In addition, device-hub stores information about registered devices, so when it's restarted it automatically reconnects to registered devices, and a much more, see the full [list](#Features) of supported features.
+First, an IoT device should be manually or automatically registered in the device-hub. Then, device-hub starts to fetch device telemetry and registration data and stores it in the long-term storage. In addition, device-hub stores information about registered devices, so when it's restarted it automatically reconnects to registered devices, and much more, see the full [list](#Features) of supported features.
 
 ## How To Use It
 
